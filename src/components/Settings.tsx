@@ -99,35 +99,31 @@ export default function Settings() {
                 }
               </SelectContent>
             </Select>
-            {
-              poemForm === 'Poem' && <>
-                <Label htmlFor="name" className="text-right">
-                  Style
-                </Label>
-                <Select
-                  value={poemStyle}
-                  onValueChange={(value) => {
-                    setPoemStyle(value as PoemStyleNames);
-                  }}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Style" />
-                  </SelectTrigger>
-                  <SelectContent>
+            <Label htmlFor="name" className="text-right">
+              Style
+            </Label>
+            <Select
+              value={poemStyle}
+              onValueChange={(value) => {
+                setPoemStyle(value as PoemStyleNames);
+              }}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Style" />
+              </SelectTrigger>
+              <SelectContent>
+                {
+                  (Object.keys(poemStyles) as (keyof typeof poemStyles)[]).map((poemStyleCategory) => <SelectGroup key={poemStyleCategory}>
+                    <SelectLabel>{poemStyleCategory}</SelectLabel>
                     {
-                      (Object.keys(poemStyles) as (keyof typeof poemStyles)[]).map((poemStyleCategory) => <SelectGroup key={poemStyleCategory}>
-                        <SelectLabel>{poemStyleCategory}</SelectLabel>
-                        {
-                          (orderBy(poemStyles[poemStyleCategory], 'name', 'asc') as { name: string }[]).map(
-                            poemStyle => <SelectItem key={poemStyle.name} value={poemStyle.name}>{poemStyle.name}</SelectItem>
-                          )
-                        }
-                      </SelectGroup>)
+                      (orderBy(poemStyles[poemStyleCategory], 'name', 'asc') as { name: string }[]).map(
+                        poemStyle => <SelectItem key={poemStyle.name} value={poemStyle.name}>{poemStyle.name}</SelectItem>
+                      )
                     }
-                  </SelectContent>
-                </Select>
-              </>
-            }
+                  </SelectGroup>)
+                }
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <SheetFooter>

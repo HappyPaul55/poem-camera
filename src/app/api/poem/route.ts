@@ -45,8 +45,7 @@ export async function POST(request: Request) {
   }
 
   // Use different prompts basedon settings.
-  const systemMessageTemplate = form !== 'Poem'
-    && poemStyles.Theme.map(row => row.name).includes(style as any)
+  const systemMessageTemplate = poemStyles.Theme.map(row => row.name).includes(style as any)
     ? initialSystemMessageWithCategory
     : initialSystemMessageWithPerson;
 
