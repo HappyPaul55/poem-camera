@@ -2,9 +2,19 @@ import { generateText } from 'ai';
 import { createXai } from '@ai-sdk/xai';
 import z from 'zod';
 import sharp from 'sharp';
+import poemForms, { PoemFormsNames } from '@/lib/poemForms';
+import poemStyles, { PoemStyleNames } from '@/lib/poemStyles';
 
+const poemFormsNames = Object.values(poemForms)
+  .flat()
+  .map((row) => row.name);
+const poemStyleNames = Object.values(poemStyles)
+  .flat()
+  .map((row) => row.name);
+  
 const requestFormat = z.object({
-  style: z.enum(['limerick', 'poem', 'haiku']),
+  form: z.enum(poemFormsNames as [string, ...string[]]),
+  style: z.enum(poemStyleNames as [string, ...string[]]),
   image: z.string().startsWith('data:')
 });
 
@@ -14,7 +24,9 @@ const xai = createXai({
   apiKey: process.env.XAI_API_KEY!,
 });
 
-const initialSystemMessage = 'You are a photo to %style% printer. You will be given a picture from the user, you need to return a short %style% that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well, ideally it should be funny. Responses should not be generic and must be about the picture provided. The first line will be the the title of the %style%, the rest will be the poem contents only.';
+const initialSystemMessage = 'You are a photo to %form% printer. You will be given a picture from the user, you need to return a short %form% that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well. Responses should not be generic and must be about the picture provided. The first line will be the the title of the %form%, the rest will be the poem contents only.';
+const initialSystemMessageWithCategory = initialSystemMessage + 'The %form% should be %style%.';
+const initialSystemMessageWithPerson = initialSystemMessage + 'The %form% should be in the style of %style%.';
 
 async function webp2Jpeg(image: string): Promise<Buffer> {
   const buffer = Buffer.from(image, 'base64');
@@ -25,12 +37,18 @@ async function webp2Jpeg(image: string): Promise<Buffer> {
 }
 
 export async function POST(request: Request) {
-  const { image, style } = requestFormat.parse(await request.json() as any);
+  const { image, style, form } = requestFormat.parse(await request.json() as any) as { image: string, style: PoemStyleNames, form: PoemFormsNames };
   const [formatParts, data] = image.substring('data:'.length).split(',');
   const [format, encoding] = formatParts.split(';');
   if (encoding !== 'base64') {
     throw new Error('Encoding must be "base64"');
   }
+
+  // Use different prompts basedon settings.
+  const systemMessageTemplate = form !== 'Poem'
+    && poemStyles.Theme.map(row => row.name).includes(style as any)
+    ? initialSystemMessageWithCategory
+    : initialSystemMessageWithPerson;
 
   const imageData =
     format !== 'image/webp'
@@ -39,7 +57,8 @@ export async function POST(request: Request) {
 
   const { text } = await generateText({
     model: xai('grok-vision-beta'),
-    system: initialSystemMessage
+    system: systemMessageTemplate
+      .replaceAll('%form%', form)
       .replaceAll('%style%', style),
     messages: [
       {
@@ -54,8 +73,8 @@ export async function POST(request: Request) {
     ],
   });
 
-  const textParts = text.split("\n");
-  const title = textParts.shift()!;
+  const textParts = text.trim().split("\n");
+  const title = textParts.shift()!.trim().replace(/^\*+/, '').replace(/\*+$/, '').trim();
   const body = textParts.join("\n").trim();
 
   return Response.json({ title, body });

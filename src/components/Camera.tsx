@@ -22,7 +22,7 @@ function NoAccessGranted() {
   </div>
 }
 
-export default function Camera (props: {setFrame: (frame: string) => void}) {
+export default function Camera (props: {onPhoto: (frame: string) => void}) {
   const [permissionGranted, setPermissionGranted] = useState<boolean|undefined>(undefined);
   const [deviceIndex, setDeviceIndex] = useState<number|undefined>(undefined);
   const [devices, setDevices] = useState<MediaDeviceInfo[]|undefined>(undefined);
@@ -31,7 +31,6 @@ export default function Camera (props: {setFrame: (frame: string) => void}) {
 
   const handleDevices = useCallback(
     (mediaDevices: MediaDeviceInfo[]) => {
-      console.log({mediaDevices})
       const videoMediaDevices = mediaDevices.filter(({ kind }) => kind === "videoinput");
       setDevices(videoMediaDevices);
       setDeviceIndex(0)
@@ -44,7 +43,10 @@ export default function Camera (props: {setFrame: (frame: string) => void}) {
       try {
         await (navigator as any).getUserMedia(
           {
-            video: true,
+            video: {
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
           },
           () => setPermissionGranted(true),
           () => setPermissionGranted(false)
@@ -76,8 +78,8 @@ export default function Camera (props: {setFrame: (frame: string) => void}) {
     if (frame === undefined) {
       return;
     }
-    props.setFrame(frame);
-  }, [webcamRef]);
+    props.onPhoto(frame);
+  }, [props.onPhoto, webcamRef]);
 
   const switchCameraHandler = useCallback(() => {
     setDeviceIndex(deviceIndex! + 2 > (devices ?? []).length ? 0 : deviceIndex! + 1)
@@ -95,8 +97,6 @@ export default function Camera (props: {setFrame: (frame: string) => void}) {
     return <Loading />
   }
 
-  console.log({videoSettings})
-
   return <div className="bg-blue-500">
     <Webcam
       onPlay={playHandler}
@@ -110,15 +110,19 @@ export default function Camera (props: {setFrame: (frame: string) => void}) {
     />
     <div className="absolute top-1/2 left-8 w-20 -mt-16 text-center">
       <button
-        className=" bg-red-600 border-4 border-white mx-auto rounded-full mb-4 hover:bg-red-500"
+        className=" bg-red-600 border-4 border-white mx-auto rounded-full mb-4 hover:bg-red-500 text-white"
         onClick={takePhotoHandler}
         title="Take photo"
-        ><MdCamera className="w-14 h-14 m-2" /></button>
+      >
+          <MdCamera className="w-14 h-14 m-2" />
+      </button>
       {(devices ?? []).length > 1 && <button
-        className=" bg-blue-600 border-4 border-white mx-auto rounded-full hover:bg-blue-500"
+        className=" bg-blue-600 border-4 border-white mx-auto rounded-full hover:bg-blue-500 text-white"
         onClick={switchCameraHandler}
         title="Switch camera"
-      ><MdOutlineFlipCameraAndroid className="w-10 h-10 m-2" /></button>}
+      >
+        <MdOutlineFlipCameraAndroid className="w-10 h-10 m-2" />
+      </button>}
     </div>
   </div>
 }
