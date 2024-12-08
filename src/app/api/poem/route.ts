@@ -11,7 +11,7 @@ const poemFormsNames = Object.values(poemForms)
 const poemStyleNames = Object.values(poemStyles)
   .flat()
   .map((row) => row.name);
-  
+
 const requestFormat = z.object({
   form: z.enum(poemFormsNames as [string, ...string[]]),
   style: z.enum(poemStyleNames as [string, ...string[]]),
@@ -30,7 +30,7 @@ const initialSystemMessageWithPerson = initialSystemMessage + 'The %form% should
 
 async function webp2Jpeg(image: string): Promise<Buffer> {
   const buffer = Buffer.from(image, 'base64');
-  
+
   return await sharp(buffer)
     .jpeg()
     .toBuffer();

@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { MdCamera, MdOutlineFlipCameraAndroid } from "react-icons/md";
+import { ImSpinner5 } from "react-icons/im";
+import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
 function Loading() {
-  return <div className="bg-blue-600 bg-opacity-80 flex items-center justify-center text-3xl">
+  return <div className="bg-blue-600 bg-opacity-80 flex items-center justify-center text-3xl text-white">
     Loading...
-    </div>
+  </div>;
 }
 
 function NoDevicesFound() {
@@ -22,12 +24,12 @@ function NoAccessGranted() {
   </div>
 }
 
-export default function Camera (props: {onPhoto: (frame: string) => void}) {
-  const [permissionGranted, setPermissionGranted] = useState<boolean|undefined>(undefined);
-  const [deviceIndex, setDeviceIndex] = useState<number|undefined>(undefined);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]|undefined>(undefined);
+export default function Camera(props: { onPhoto: (frame: string) => void }) {
+  const [permissionGranted, setPermissionGranted] = useState<boolean | undefined>(undefined);
+  const [deviceIndex, setDeviceIndex] = useState<number | undefined>(undefined);
+  const [devices, setDevices] = useState<MediaDeviceInfo[] | undefined>(undefined);
   const webcamRef = useRef<Webcam>(null);
-  const [videoSettings, setVideoSettings] = useState<MediaTrackSettings|undefined>(undefined);
+  const [videoSettings, setVideoSettings] = useState<MediaTrackSettings | undefined>(undefined);
 
   const handleDevices = useCallback(
     (mediaDevices: MediaDeviceInfo[]) => {
@@ -51,12 +53,12 @@ export default function Camera (props: {onPhoto: (frame: string) => void}) {
           () => setPermissionGranted(true),
           () => setPermissionGranted(false)
         );
-        
+
         const devices = await navigator.mediaDevices.enumerateDevices();
         handleDevices(devices)
       } catch (e) {
         setPermissionGranted(false);
-        setDevices([]); 
+        setDevices([]);
       }
     })();
   }, [setPermissionGranted, setDevices, handleDevices]);
@@ -114,7 +116,7 @@ export default function Camera (props: {onPhoto: (frame: string) => void}) {
         onClick={takePhotoHandler}
         title="Take photo"
       >
-          <MdCamera className="w-14 h-14 m-2" />
+        <MdCamera className="w-14 h-14 m-2" />
       </button>
       {(devices ?? []).length > 1 && <button
         className=" bg-blue-600 border-4 border-white mx-auto rounded-full hover:bg-blue-500 text-white"
