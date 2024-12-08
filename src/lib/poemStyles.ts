@@ -6,6 +6,14 @@ const poemStyles = {
     { name: "Humorous" },
     { name: "Philosophical" },
     { name: "Confessional" },
+    { name: "Horror" },
+  ],
+
+  "Novelty": [
+    { name: "Master Yoda" },
+    { name: "A Young Child" },
+    { name: "An Angry Person with Tourettes" },
+    { name: "Donald Trump" },
   ],
 
   "Classical and Ancient Poets": [

@@ -27,6 +27,7 @@ import poemStyles, { PoemStyleNames } from "@/lib/poemStyles";
 import poemForms, { PoemFormsNames } from "@/lib/poemForms";
 import usePoemStyle from "@/hooks/usePoemStyle";
 import useSettings from "@/hooks/useSettings";
+import orderBy from 'lodash.orderby';
 
 export default function Settings() {
   const [settings, setSettings] = useSettings();
@@ -90,7 +91,7 @@ export default function Settings() {
                   (Object.keys(poemForms) as (keyof typeof poemForms)[]).map((poemFormCategory) => <SelectGroup key={poemFormCategory}>
                     <SelectLabel>{poemFormCategory}</SelectLabel>
                     {
-                      poemForms[poemFormCategory].map(
+                      orderBy(poemForms[poemFormCategory], 'name', 'asc').map(
                         poemForm => <SelectItem key={poemForm.name} value={poemForm.name}>{poemForm.name}</SelectItem>
                       )
                     }
@@ -117,7 +118,7 @@ export default function Settings() {
                       (Object.keys(poemStyles) as (keyof typeof poemStyles)[]).map((poemStyleCategory) => <SelectGroup key={poemStyleCategory}>
                         <SelectLabel>{poemStyleCategory}</SelectLabel>
                         {
-                          poemStyles[poemStyleCategory].map(
+                          (orderBy(poemStyles[poemStyleCategory], 'name', 'asc') as { name: string }[]).map(
                             poemStyle => <SelectItem key={poemStyle.name} value={poemStyle.name}>{poemStyle.name}</SelectItem>
                           )
                         }

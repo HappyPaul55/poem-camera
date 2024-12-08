@@ -25,8 +25,8 @@ const xai = createXai({
 });
 
 const initialSystemMessage = 'You are a photo to %form% printer. You will be given a picture from the user, you need to return a short %form% that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well. Responses should not be generic and must be about the picture provided. The first line will be the the title of the %form%, the rest will be the poem contents only.';
-const initialSystemMessageWithCategory = initialSystemMessage + 'The %form% should be %style%.';
-const initialSystemMessageWithPerson = initialSystemMessage + 'The %form% should be in the style of %style%.';
+const initialSystemMessageWithCategory = initialSystemMessage + ' The %form% should be %style%.';
+const initialSystemMessageWithPerson = initialSystemMessage + ' The %form% must be written in the style of %style%.';
 
 async function webp2Jpeg(image: string): Promise<Buffer> {
   const buffer = Buffer.from(image, 'base64');
@@ -55,11 +55,13 @@ export async function POST(request: Request) {
       ? Buffer.from(data, 'base64')
       : await webp2Jpeg(data);
 
+  const systemPrompt = systemMessageTemplate
+    .replaceAll('%form%', form)
+    .replaceAll('%style%', style);
+
   const { text } = await generateText({
     model: xai('grok-vision-beta'),
-    system: systemMessageTemplate
-      .replaceAll('%form%', form)
-      .replaceAll('%style%', style),
+    system: systemPrompt,
     messages: [
       {
         role: 'user',
