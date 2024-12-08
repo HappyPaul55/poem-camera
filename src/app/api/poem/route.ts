@@ -14,7 +14,7 @@ const xai = createXai({
   apiKey: process.env.XAI_API_KEY!,
 });
 
-const initialSystemMessage = 'You are a photo to %style% printer. You will be given a picture from the user, you need to return a short %style% that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well. Responses should not be generic and must be about the picture provided. The first line will be the the title of the poem, the rest will be the poem contents only.';
+const initialSystemMessage = 'You are a photo to %style% printer. You will be given a picture from the user, you need to return a short %style% that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well, ideally it should be funny. Responses should not be generic and must be about the picture provided. The first line will be the the title of the %style%, the rest will be the poem contents only.';
 
 async function webp2Jpeg(image: string): Promise<Buffer> {
   const buffer = Buffer.from(image, 'base64');
