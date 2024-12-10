@@ -7,6 +7,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Intro from "@/components/Intro";
 import PoemDialog from "@/components/PoemDialog";
 import usePoem from "@/hooks/usePoem";
+import Printer from "@/components/Printer";
 
 export default function Home() {
   const [isBooted, setIsBooted] = useState<boolean>(false);
@@ -38,7 +39,10 @@ export default function Home() {
         {preview && <ConfirmDialog preview={preview} onConfirm={previewConfirmHandler} onReject={previewRejectHandler} />}
         {frame && <PoemDialog onClose={peomOnCloseHandler} poem={poem} />}
       </main>
-      <Settings />
+      <div className="absolute top-8 right-8 text-black z-50 flex gap-2">
+        <Printer />
+        <Settings />
+      </div>
     </>
   );
 }

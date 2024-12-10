@@ -124,6 +124,8 @@ export default function Intro(props: { onBooted: () => void }) {
         </Button>
       </div>
     </main>
-    <Settings />
+    <div className="absolute top-8 right-8 text-black z-50 flex gap-2">
+      <Settings />
+    </div>
   </>
 }

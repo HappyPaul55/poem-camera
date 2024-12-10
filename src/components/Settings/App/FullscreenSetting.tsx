@@ -10,11 +10,11 @@ import {
 import { Label } from "@/components/ui/label";
 import useSettings from "@/hooks/useSettings";
 
-export default function FullscreenSetting() {
+export default function AppFullscreenSetting() {
   const [settings, setSettings] = useSettings();
 
   return <>
-    <Label htmlFor="name" className="text-right">
+    <Label htmlFor="app-fullscreen" className="text-right">
       Fullscreen
     </Label>
     <Select

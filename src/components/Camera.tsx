@@ -118,7 +118,7 @@ export default function Camera(props: { onPhoto: (frame: string) => void }) {
       >
         <MdCamera className="w-14 h-14 m-2" />
       </button>
-      {(devices ?? []).length > 1 && <button
+      {((devices ?? []).length > 1) && <button
         className=" bg-blue-600 border-4 border-white mx-auto rounded-full hover:bg-blue-500 text-white"
         onClick={switchCameraHandler}
         title="Switch camera"

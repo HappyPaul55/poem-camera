@@ -1,0 +1,37 @@
+declare module "@point-of-sale/webserial-receipt-printer/dist/webserial-receipt-printer.esm" {
+  interface WebSerialPrinterDevice {
+    type: 'serial',
+    vendorId: number;
+    productId: number;
+  }
+
+  interface WebSerialReceiptPrinterOptions {
+    baudRate: number;
+  }
+
+  interface EventMap {
+    connected: (device: WebSerialPrinterDevice) => void;
+    disconnected: () => void;
+    error: (error: Error) => void;
+  }
+
+  export class WebSerialReceiptPrinter {
+    constructor(options: WebSerialReceiptPrinterOptions);
+
+    connect(): void;
+
+    reconnect(device: WebSerialPrinterDevice): Promise<void>;
+
+    addEventListener<K extends keyof EventMap>(
+      type: K,
+      listener: EventMap[K]
+    ): void;
+
+    removeEventListener<K extends keyof EventMap>(
+      type: K,
+      listener: EventMap[K]
+    ): void;
+  }
+
+  export default WebSerialReceiptPrinter;
+}

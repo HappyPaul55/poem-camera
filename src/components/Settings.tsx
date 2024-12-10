@@ -12,15 +12,16 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { MdSettings } from "react-icons/md";
-import PoemFormSetting from "./Settings/PoemFormSetting";
-import PoemStyleSetting from "./Settings/PoemStyleSetting";
-import FullscreenSetting from "./Settings/FullscreenSetting";
+import usePrinter from "@/hooks/usePrinter";
+import AppSettings from "./Settings/AppSettings";
+import PrinterSettings from "./Settings/PrinterSettings";
+import PoemSettings from "./Settings/PoemSettings";
 
 export default function Settings() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" className="absolute top-8 right-8 text-black z-50">
+        <Button variant="outline">
           <MdSettings />
         </Button>
       </SheetTrigger>
@@ -34,12 +35,15 @@ export default function Settings() {
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <h2 className="font-bold col-span-4">App Settings</h2>
-            <FullscreenSetting />
+            <AppSettings />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <h2 className="font-bold col-span-4">Poem Settings</h2>
-            <PoemFormSetting />
-            <PoemStyleSetting />
+            <PoemSettings />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <h2 className="font-bold col-span-4">Printer Settings</h2>
+            <PrinterSettings />
           </div>
         </div>
         <SheetFooter>
