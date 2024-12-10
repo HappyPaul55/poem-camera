@@ -112,7 +112,7 @@ export default function Intro(props: { onBooted: () => void }) {
 
   return <>
     <main id="main-wrapper">
-      <div className="bg-blue-600 bg-opacity-80 flex flex-col items-center justify-center">
+      <div className="bg-blue-600 bg-opacity-80 flex flex-col items-center justify-center overflow-hidden">
         <IntroGallery />
         <Button
           type="submit"

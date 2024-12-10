@@ -1,9 +1,10 @@
 'use client'
 
 import useLocalStorageState from "use-local-storage-state";
-import WebBluetoothReceiptPrinter from "./../../node_modules/@point-of-sale/webbluetooth-receipt-printer/dist/webbluetooth-receipt-printer.esm"
-import { useCallback, useEffect, useState } from "react";
+import WebBluetoothReceiptPrinter, { EmitterEvents } from "@/lib/WebBluetoothReceiptPrinter";
+import { useCallback, useContext, useEffect, useState } from "react";
 import ReceiptPrinterEncoder from "@point-of-sale/receipt-printer-encoder";
+import PrinterConnectionContext from "@/lib/PrinterConnectionContext";
 
 export type NoPrinter = {
   type: 'none'
@@ -46,15 +47,13 @@ export default function usePrinter() {
     },
   });
 
-  /**
-   * If the driver is trying to connect to the device.
-   */
-  const [isConnecting, setIsConnecting] = useState(false);
-
-  /**
-   * The device/connection, or undefined if not connected.
-   */
-  const [device, setDevice] = useState<{ type: 'serial', vendorId: string, productId: string } | undefined>(undefined);
+  const {
+    setDriver,
+    device,
+    setDevice,
+    isConnecting,
+    setIsConnecting
+  } = useContext(PrinterConnectionContext)
 
   // Timeout the connection if no updates in 30s.
   useEffect(() => {
@@ -67,14 +66,12 @@ export default function usePrinter() {
     return () => clearTimeout(timeout);
   }, [isConnecting, setIsConnecting])
 
+  const printerModel = settings.type === 'thermal'
+    ? settings.model
+    : undefined;
+
   // Use wants to connect.
   const connect = useCallback(() => {
-    alert(JSON.stringify([
-      settings.type !== 'thermal',
-      settings.driver !== 'bluetooth',
-      device !== undefined,
-      isConnecting
-    ]))
     if (settings.type !== 'thermal'
       || settings.driver !== 'bluetooth'
       || device !== undefined
@@ -84,23 +81,33 @@ export default function usePrinter() {
     }
 
     const driver = new WebBluetoothReceiptPrinter();
-    driver.addEventListener('connected', (device) => {
+    alert("Driving")
+    driver.addEventListener('connected', (device: EmitterEvents["connected"][0]) => {
+      setDriver(driver)
       setDevice(device);
       setIsConnecting(false);
 
-      let encoder = new ReceiptPrinterEncoder({
-        printerModel: 'pos-5890',
+      const encoder = new ReceiptPrinterEncoder({
+        printerModel,
       });
 
-      let data = encoder
+      const data = encoder
         .initialize()
-        .text('The quick brown fox jumps over the lazy dog')
+        .align('center')
+        .size(2, 2)
+        .text('Poem Camera')
         .newline()
-        .qrcode('https://nielsleenheer.com')
-        .encode();
+        .size(1, 1)
+        .text('By Paul Happy Hutchinson')
+        .newline()
+        .align('left')
+        .newline()
+        .newline()
+        .newline()
+        .newline();
 
-      /* Print the receipt */
-      driver.print(data);
+      /* Print the header. */
+      driver.print(data.encode());
     })
     driver.addEventListener('disconnected', () => {
       console.log("disconnected")
@@ -109,7 +116,7 @@ export default function usePrinter() {
     });
     driver.connect();
     setIsConnecting(true);
-  }, [device, isConnecting, setIsConnecting, setDevice])
+  }, [printerModel, device, isConnecting, setIsConnecting, setDevice])
 
   // Our state and actions.
   return {

@@ -5,6 +5,9 @@ const poemForms = {
     { name: "Limerick" },
     { name: "Poem" },
     { name: "Sonnet" },
+    { name: "Detective" },
+    { name: "Debug" },
+    { name: "Tongue Twister" },
   ],
 } as const;
 

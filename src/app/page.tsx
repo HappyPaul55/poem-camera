@@ -8,12 +8,27 @@ import Intro from "@/components/Intro";
 import PoemDialog from "@/components/PoemDialog";
 import usePoem from "@/hooks/usePoem";
 import Printer from "@/components/Printer";
+import PrinterConnectionContext from "@/lib/PrinterConnectionContext";
+import WebBluetoothReceiptPrinter from "@/lib/WebBluetoothReceiptPrinter";
+import useSettings from "@/hooks/useSettings";
 
 export default function Home() {
+  // Intro.
   const [isBooted, setIsBooted] = useState<boolean>(false);
+
+  // App settings.
+  const [settings] = useSettings();
+
+  // Printer connection.
   const [preview, setPreview] = useState<string | undefined>(undefined);
+  const [driver, setDriver] = useState<WebBluetoothReceiptPrinter>();
+  const [device, setDevice] = useState<{ type: 'bluetooth', id: string } | undefined>();
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  // Poem.
   const { poem, setFrame, frame } = usePoem();
 
+  // Handlers.
   const previewConfirmHandler = useCallback(() => {
     setFrame(preview);
     setPreview(undefined);
@@ -33,9 +48,16 @@ export default function Home() {
   }
 
   return (
-    <>
+    <PrinterConnectionContext.Provider value={{
+      driver,
+      device,
+      setDriver,
+      setDevice,
+      isConnecting,
+      setIsConnecting,
+    }}>
       <main id="main-wrapper" className="z-0">
-        <Camera onPhoto={setPreview} />
+        <Camera onPhoto={settings.preview === 'always' ? setPreview : setFrame} />
         {preview && <ConfirmDialog preview={preview} onConfirm={previewConfirmHandler} onReject={previewRejectHandler} />}
         {frame && <PoemDialog onClose={peomOnCloseHandler} poem={poem} />}
       </main>
@@ -43,6 +65,6 @@ export default function Home() {
         <Printer />
         <Settings />
       </div>
-    </>
+    </PrinterConnectionContext.Provider>
   );
 }

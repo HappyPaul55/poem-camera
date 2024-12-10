@@ -65,27 +65,83 @@ declare module "@point-of-sale/receipt-printer-encoder" {
   interface ReceiptPrinterEncoder {
     /**
      * Initializes the encoder.
-     * @returns The instance of the encoder for chaining.
      */
     initialize(): this;
 
     /**
      * Adds text to the receipt.
-     * @param content The text content to add.
-     * @returns The instance of the encoder for chaining.
      */
     text(content: string): this;
 
     /**
+     * Adds text to the receipt followed by a new line.
+     */
+    line(content: string): this;
+
+    /**
+     * Insert a horizontal rule
+     */
+    rule(options?: { style?: 'single' | 'double', width?: number }): this;
+
+    /**
+     * Choose different font.
+     */
+    font(value: 'A' | 'B'): this;
+
+    /**
+     * Invert background and foreground.
+     */
+    invert(value?: boolean): this;
+
+    /**
+     * Set italics (if undefined, it will toggle).
+     */
+    italic(value?: boolean): this;
+
+    /**
+     * Set bold (if undefined, it will toggle).
+     */
+    bold(value?: boolean): this;
+
+    /**
+     * Cut the paper.
+     */
+    cut(): this;
+
+    /**
+     * Draw a box with content.
+     */
+    box(options: {
+      style: 'single' | 'double',
+      width: number,
+      marginLeft: number,
+      marginRight: number,
+      paddingLeft: number,
+      paddingRight: number,
+    }, content: string)
+
+    /**
+     * Change text alignment
+     */
+    align(value: 'left' | 'center' | 'right'): this;
+
+    /**
+     * @param content The codepage that we set the printer to
+     */
+    codepage(codepage: string): this;
+
+    /**
+     * Sets the font size
+     */
+    size(x: number, y: number): this;
+
+    /**
      * Adds a newline to the receipt.
-     * @returns The instance of the encoder for chaining.
      */
     newline(): this;
 
     /**
      * Adds a QR code to the receipt.
-     * @param content The data to encode in the QR code.
-     * @returns The instance of the encoder for chaining.
      */
     qrcode(content: string): this;
 

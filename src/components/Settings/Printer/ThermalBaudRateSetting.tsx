@@ -18,11 +18,11 @@ export default function PrinterThermalBaudRateSetting() {
   }
 
   return <>
-    <Label htmlFor="printer-thermal-serial-baudrate" className="text-right">
+    <Label htmlFor="printer-thermal-baudrate" className="text-right">
       Baud Rate
     </Label>
     <Select
-      name="printer-thermal-serial-baudrate"
+      name="printer-thermal-baudrate"
       value={printer.baudRate.toString()}
       onValueChange={(value) => {
         setPrinter({

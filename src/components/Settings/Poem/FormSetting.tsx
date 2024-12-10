@@ -18,10 +18,11 @@ export default function PoemFormSetting() {
   const [poemForm, setPoemForm] = usePoemForm();
 
   return <>
-    <Label htmlFor="name" className="text-right">
+    <Label htmlFor="app-form" className="text-right">
       Form
     </Label>
     <Select
+      name="app-form"
       value={poemForm}
       onValueChange={(value) => {
         setPoemForm(value as PoemFormsNames);

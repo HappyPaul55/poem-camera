@@ -27,6 +27,8 @@ const xai = createXai({
 const initialSystemMessage = 'You are a photo to %form% printer. You will be given a picture from the user, you need to return a short %form% that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well. Responses should not be generic and must be about the picture provided. The first line will be the the title of the %form%, the rest will be the poem contents only.';
 const initialSystemMessageWithCategory = initialSystemMessage + ' The %form% should be %style%.';
 const initialSystemMessageWithPerson = initialSystemMessage + ' The %form% must be written in the style of %style%.';
+const initialSystemMessageDetective = 'You are playing a mystery murder game. You are Detective %form% and must look at the photo provided by the user for clues, everyone and everything you see could be clue. Write a short description in the style of a poem of what you see such as threats, motives, and other creative ideas. The first line will be the the title of the %form% poem, the rest will be the poem contents only.';
+const initialSystemMessageDebug = 'You are a futureistic AI scanning camera for a sci-fi movie. You will be given a photo, you must analyse it and create a "data sheet" of what you see. The more you see, the more you should output but at most, you should output no more than 40 lines. The first line will be a summary of what you see, the rest of the content will be you "data sheet".';
 
 async function webp2Jpeg(image: string): Promise<Buffer> {
   const buffer = Buffer.from(image, 'base64');
@@ -45,9 +47,16 @@ export async function POST(request: Request) {
   }
 
   // Use different prompts basedon settings.
-  const systemMessageTemplate = poemStyles.Theme.map(row => row.name).includes(style as any)
-    ? initialSystemMessageWithCategory
-    : initialSystemMessageWithPerson;
+  let systemMessageTemplate = initialSystemMessageWithCategory;
+  if (poemStyles.Theme.map(row => row.name).includes(style as any)) {
+    systemMessageTemplate = initialSystemMessageWithPerson;
+  }
+  if (form === 'Detective') {
+    systemMessageTemplate = initialSystemMessageDetective;
+  }
+  if (form === 'Debug') {
+    systemMessageTemplate = initialSystemMessageDebug;
+  }
 
   const imageData =
     format !== 'image/webp'

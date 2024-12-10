@@ -18,10 +18,11 @@ export default function PoemStyleSetting() {
   const [poemStyle, setPoemStyle] = usePoemStyle();
 
   return <>
-    <Label htmlFor="name" className="text-right">
+    <Label htmlFor="app-style" className="text-right">
       Style
     </Label>
     <Select
+      name="app-style"
       value={poemStyle}
       onValueChange={(value) => {
         setPoemStyle(value as PoemStyleNames);

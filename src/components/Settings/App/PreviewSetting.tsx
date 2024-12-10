@@ -10,29 +10,29 @@ import {
 import { Label } from "@/components/ui/label";
 import useSettings from "@/hooks/useSettings";
 
-export default function AppFullscreenSetting() {
+export default function PreviewSetting() {
   const [settings, setSettings] = useSettings();
 
   return <>
-    <Label htmlFor="app-fullscreen" className="text-right">
-      Fullscreen
+    <Label htmlFor="app-preview" className="text-right">
+      Preview
     </Label>
     <Select
-      name="app-fullscreen"
-      value={settings.fullScreen ? 'Yes' : "No"}
+      name="app-preview"
+      value={settings.preview}
       onValueChange={(value) => {
         setSettings({
           ...settings,
-          fullScreen: value === "Yes"
+          preview: value as 'always' | 'never'
         });
       }}
     >
       <SelectTrigger className="col-span-3">
-        <SelectValue placeholder="Use Fullscreen" />
+        <SelectValue placeholder="Show Previews" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="Yes">Yes</SelectItem>
-        <SelectItem value="No">No</SelectItem>
+        <SelectItem value="always">Always</SelectItem>
+        <SelectItem value="never">Never</SelectItem>
       </SelectContent>
     </Select>
   </>
