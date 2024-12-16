@@ -8,24 +8,27 @@ import {
   SelectValue,
   SelectGroup,
   SelectLabel,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import orderBy from 'lodash.orderby';
-import usePoemStyle from "@/hooks/usePoemStyle";
-import poemStyles, { PoemStyleNames } from "@/lib/poemStyles";
+import poemStyles, { PoemStyleNames } from '@/lib/poemStyles';
+import usePoemSettings from '@/hooks/usePoemSettings';
 
 export default function PoemStyleSetting() {
-  const [poemStyle, setPoemStyle] = usePoemStyle();
+  const [poemSettings, setPoemSettings] = usePoemSettings();
 
   return <>
-    <Label htmlFor="app-style" className="text-right">
+    <Label htmlFor="poem-style" className="text-right">
       Style
     </Label>
     <Select
-      name="app-style"
-      value={poemStyle}
+      name="poem-style"
+      value={poemSettings.style}
       onValueChange={(value) => {
-        setPoemStyle(value as PoemStyleNames);
+        setPoemSettings({
+          ...poemSettings,
+          style: value as PoemStyleNames,
+        });
       }}
     >
       <SelectTrigger className="col-span-3">

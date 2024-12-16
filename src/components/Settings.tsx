@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetClose,
@@ -10,13 +10,12 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
-import { MdSettings } from "react-icons/md";
-import usePrinter from "@/hooks/usePrinter";
-import AppSettings from "./Settings/AppSettings";
-import PrinterSettings from "./Settings/PrinterSettings";
-import PoemSettings from "./Settings/PoemSettings";
-import { ScrollArea } from "./ui/scroll-area";
+} from '@/components/ui/sheet';
+import { MdSettings } from 'react-icons/md';
+import AppSettings from '@/components/Settings/AppSettings';
+import PrinterSettings from '@/components/Settings/PrinterSettings';
+import PoemSettings from '@/components/Settings/PoemSettings';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Settings() {
   return (

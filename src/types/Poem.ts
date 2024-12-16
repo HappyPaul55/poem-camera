@@ -1,3 +1,3 @@
-type Poem = { title: string, body: string };
+type Poem = { ai: string, title: string, body: string };
 
 export default Poem;

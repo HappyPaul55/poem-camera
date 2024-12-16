@@ -1,10 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Webcam from "react-webcam";
-import { MdCamera, MdOutlineFlipCameraAndroid } from "react-icons/md";
-import { ImSpinner5 } from "react-icons/im";
-import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Webcam from 'react-webcam';
+import { MdCamera, MdOutlineFlipCameraAndroid } from 'react-icons/md';
 
 function Loading() {
   return <div className="bg-blue-600 bg-opacity-80 flex items-center justify-center text-3xl text-white">
@@ -99,7 +97,7 @@ export default function Camera(props: { onPhoto: (frame: string) => void }) {
     return <Loading />
   }
 
-  return <div className="bg-blue-500">
+  return <div className="bg-blue-500 print:hidden">
     <Webcam
       onPlay={playHandler}
       className="z-20 w-full h-full"

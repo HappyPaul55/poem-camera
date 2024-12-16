@@ -3,21 +3,22 @@
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { useCallback, useContext, useEffect, useState } from "react"
-import { Button } from "./ui/button";
-import { DialogClose } from "@radix-ui/react-dialog";
-import { ImSpinner5 } from "react-icons/im";
-import Poem from "@/types/Poem";
-import { ScrollArea } from "./ui/scroll-area";
-import PrinterConnectionContext from "@/lib/PrinterConnectionContext";
-import printPoem from "@/lib/printPoem";
-import usePrinter from "@/hooks/usePrinter";
-import useSettings from "@/hooks/useSettings";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { DialogClose, DialogDescription } from '@radix-ui/react-dialog';
+import { useCallback, useContext, useEffect, useState } from 'react'
+import { ImSpinner5 } from 'react-icons/im';
+import Poem from '@/types/Poem';
+import PrinterConnectionContext from '@/lib/PrinterConnectionContext';
+import printPoem from '@/lib/printPoem';
+import usePrinter from '@/hooks/usePrinter';
+import useSettings, { AppInstantPrint } from '@/hooks/useAppSettings';
+import { PrinterType } from '@/hooks/usePrinterSettings';
+import { Badge } from "@/components/ui/badge"
 
 type PoemDialogProps = {
   poem: Poem | undefined,
@@ -29,22 +30,32 @@ function PoemDialogContent(props: PoemDialogProps) {
   const { printer } = usePrinter();
   const { driver, device } = useContext(PrinterConnectionContext);
 
-  useEffect(() => {
-    if (!props.poem || !driver || !device || printer.type !== 'thermal' || settings.instantPrint !== true) {
-      return;
-    }
-
-    printPoem(props.poem, driver, printer.model)
-    props.onClose()
-  }, [settings.instantPrint, props.onClose, driver, device, props.poem?.title, props.poem?.body]);
-
   const printHandler = useCallback(() => {
-    if (!props.poem || !driver || !device || printer.type !== 'thermal') {
+    if (!props.poem) {
       return;
     }
 
-    printPoem(props.poem, driver, printer.model)
-  }, [driver, device, props.poem?.title, props.poem?.body]);
+    if (printer.type === PrinterType.native) {
+      window.print();
+      return;
+    }
+
+    if (driver && device && printer.type == PrinterType.thermal) {
+      printPoem(props.poem, driver, printer.model)
+      return;
+    }
+
+    return;
+  }, [driver, device, printer.type, props.poem?.title, props.poem?.body]);
+
+  useEffect(() => {
+    if (settings.instantPrint !== AppInstantPrint.yes) {
+      return;
+    }
+
+    printHandler();
+    props.onClose()
+  }, [settings.instantPrint, props.onClose, printHandler]);
 
   if (props.poem === undefined) {
     return <>
@@ -55,9 +66,13 @@ function PoemDialogContent(props: PoemDialogProps) {
     </>
   }
 
-  return <ScrollArea className="max-h-[85vh]">
+  return <ScrollArea className="max-h-[85vh] print:max-h-[95vh]">
     <DialogHeader>
-      <DialogTitle>{props.poem.title}</DialogTitle>
+      <DialogTitle>
+        {props.poem.title}
+        <Badge variant="secondary" className="hidden">{props.poem.ai}</Badge>
+      </DialogTitle>
+      <DialogDescription className="text-sm italic hidden print:block">By Poem Printer</DialogDescription>
     </DialogHeader>
     <div
       dangerouslySetInnerHTML={{
@@ -69,7 +84,7 @@ function PoemDialogContent(props: PoemDialogProps) {
           + '</p>',
       }}
     />
-    <DialogFooter className="gap-2">
+    <DialogFooter className="gap-2 print:hidden">
       <Button type="button" onClick={printHandler}>
         Print
       </Button>

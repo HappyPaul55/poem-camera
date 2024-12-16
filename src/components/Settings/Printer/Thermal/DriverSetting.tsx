@@ -6,14 +6,15 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import usePrinter from "@/hooks/usePrinter";
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import usePrinter from '@/hooks/usePrinter';
+import { PrinterDriver, PrinterType } from '@/hooks/usePrinterSettings';
 
 export default function PrinterThermalDriverSetting() {
   const { printer, setPrinter } = usePrinter();
 
-  if (printer.type !== 'thermal') {
+  if (printer.type !== PrinterType.thermal) {
     return undefined;
   }
 
@@ -23,13 +24,13 @@ export default function PrinterThermalDriverSetting() {
     </Label>
     <Select
       name="printer-thermal-driver"
-      value={printer.driver}
+      value={printer.driver.toString()}
       onValueChange={(value) => {
-        const typedValue = value as 'usb' | 'serial' | 'bluetooth';
+        const typedValue = Number(value) as PrinterDriver;
         setPrinter({
           type: printer.type,
           driver: typedValue,
-          ...(typedValue === 'serial' ? { baudRate: 9600 } : {}) as any,
+          ...(typedValue === PrinterDriver.serial ? { baudRate: 9600 } : {}) as any,
         });
       }}
     >
@@ -37,9 +38,9 @@ export default function PrinterThermalDriverSetting() {
         <SelectValue placeholder="Driver" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="usb">USB</SelectItem>
-        <SelectItem value="serial">Serial</SelectItem>
-        <SelectItem value="bluetooth">Bluetooth</SelectItem>
+        <SelectItem value={PrinterDriver.usb.toString()}>USB</SelectItem>
+        <SelectItem value={PrinterDriver.serial.toString()}>Serial</SelectItem>
+        <SelectItem value={PrinterDriver.bluetooth.toString()}>Bluetooth</SelectItem>
       </SelectContent>
     </Select>
   </>

@@ -8,24 +8,27 @@ import {
   SelectValue,
   SelectGroup,
   SelectLabel,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import poemForms, { PoemFormsNames } from "@/lib/poemForms";
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import poemForms, { PoemFormsNames } from '@/lib/poemForms';
 import orderBy from 'lodash.orderby';
-import usePoemForm from "@/hooks/usePoemForm";
+import usePoemSettings from '@/hooks/usePoemSettings';
 
 export default function PoemFormSetting() {
-  const [poemForm, setPoemForm] = usePoemForm();
+  const [poemSettings, setPoemSettings] = usePoemSettings();
 
   return <>
-    <Label htmlFor="app-form" className="text-right">
+    <Label htmlFor="poem-form" className="text-right">
       Form
     </Label>
     <Select
-      name="app-form"
-      value={poemForm}
+      name="poem-form"
+      value={poemSettings.form}
       onValueChange={(value) => {
-        setPoemForm(value as PoemFormsNames);
+        setPoemSettings({
+          ...poemSettings,
+          form: value as PoemFormsNames,
+        });
       }}
     >
       <SelectTrigger className="col-span-3">

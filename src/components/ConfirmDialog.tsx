@@ -7,10 +7,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { useCallback } from "react"
-import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
+} from '@/components/ui/dialog'
+import { useCallback } from 'react'
+import { Button } from '@/components/ui/button';
 
 type ConfirmDialogProps = {
   preview: string,

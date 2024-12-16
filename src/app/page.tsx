@@ -1,16 +1,16 @@
 'use client'
 
-import { useCallback, useState } from "react";
-import Camera from "@/components/Camera";
-import Settings from "@/components/Settings";
-import ConfirmDialog from "@/components/ConfirmDialog";
-import Intro from "@/components/Intro";
-import PoemDialog from "@/components/PoemDialog";
-import usePoem from "@/hooks/usePoem";
-import Printer from "@/components/Printer";
-import PrinterConnectionContext from "@/lib/PrinterConnectionContext";
-import WebBluetoothReceiptPrinter from "@/lib/WebBluetoothReceiptPrinter";
-import useSettings from "@/hooks/useSettings";
+import { useCallback, useState } from 'react';
+import Camera from '@/components/Camera';
+import Settings from '@/components/Settings';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import Intro from '@/components/Intro';
+import PoemDialog from '@/components/PoemDialog';
+import usePoem from '@/hooks/usePoem';
+import Printer from '@/components/Printer';
+import PrinterConnectionContext from '@/lib/PrinterConnectionContext';
+import WebBluetoothReceiptPrinter from '@/lib/WebBluetoothReceiptPrinter';
+import useSettings, { AppPreviewMode } from '@/hooks/useAppSettings';
 
 export default function Home() {
   // Intro.
@@ -57,11 +57,11 @@ export default function Home() {
       setIsConnecting,
     }}>
       <main id="main-wrapper" className="z-0">
-        <Camera onPhoto={settings.preview === 'always' ? setPreview : setFrame} />
+        <Camera onPhoto={settings.preview === AppPreviewMode.always ? setPreview : setFrame} />
         {preview && <ConfirmDialog preview={preview} onConfirm={previewConfirmHandler} onReject={previewRejectHandler} />}
         {frame && <PoemDialog onClose={peomOnCloseHandler} poem={poem} />}
       </main>
-      <div className="absolute top-8 right-8 text-black z-50 flex gap-2">
+      <div className="absolute top-8 right-8 text-black z-50 flex gap-2 print:hidden">
         <Printer />
         <Settings />
       </div>

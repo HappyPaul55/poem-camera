@@ -1,8 +1,8 @@
-import PrinterTypeSetting from "./Printer/TypeSetting";
-import PrinterThermalDriverSetting from "./Printer/ThermalDriverSetting";
-import PrinterThermalBaudRateSetting from "./Printer/ThermalBaudRateSetting";
-import PrinterThermalModelSetting from "./Printer/ThermalModelSetting";
-import PrinterInstantPrintSetting from "./Printer/ThermalInstantPrintSetting";
+import PrinterTypeSetting from '@/components/Settings/Printer/TypeSetting';
+import PrinterThermalDriverSetting from '@/components/Settings/Printer/Thermal/DriverSetting';
+import PrinterThermalBaudRateSetting from '@/components/Settings/Printer/Thermal/BaudRateSetting';
+import PrinterThermalModelSetting from '@/components/Settings/Printer/Thermal/ModelSetting';
+import PrinterInstantPrintSetting from '@/components/Settings/Printer/Thermal/InstantPrintSetting';
 
 export default function PrinterSettings() {
   return <>

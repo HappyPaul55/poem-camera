@@ -6,21 +6,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import usePrinter, { Printer } from "@/hooks/usePrinter";
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import usePrinter from '@/hooks/usePrinter';
+import { Printer, PrinterDriver, PrinterType } from '@/hooks/usePrinterSettings';
 
-function getDefaultConfigForType(type: Printer["type"]): Printer {
+function getDefaultConfigForType(type: PrinterType): Printer {
   const defaultConfigs = {
-    none: {
-      type: 'none'
+    [PrinterType.native]: {
+      type: PrinterType.native,
     },
-    image: {
-      type: 'image'
-    },
-    thermal: {
-      type: 'thermal',
-      driver: 'usb',
+    [PrinterType.thermal]: {
+      type: PrinterType.thermal,
+      driver: PrinterDriver.bluetooth,
       model: 'generic',
     },
   } as const;
@@ -37,18 +35,17 @@ export default function PrinterTypeSetting() {
     </Label>
     <Select
       name="printer-type"
-      value={printer.type}
+      value={printer.type.toString()}
       onValueChange={(value) => {
-        setPrinter(getDefaultConfigForType(value as 'none' | 'image' | 'thermal'));
+        setPrinter(getDefaultConfigForType(Number(value) as PrinterType));
       }}
     >
       <SelectTrigger className="col-span-3">
         <SelectValue placeholder="Mode" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="none">None</SelectItem>
-        <SelectItem value="thermal">Thermal Printer</SelectItem>
-        <SelectItem value="image">Image</SelectItem>
+        <SelectItem value={PrinterType.native.toString()}>Native</SelectItem>
+        <SelectItem value={PrinterType.thermal.toString()}>Thermal Printer</SelectItem>
       </SelectContent>
     </Select>
   </>

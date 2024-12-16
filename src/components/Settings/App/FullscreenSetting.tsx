@@ -6,9 +6,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import useSettings from "@/hooks/useSettings";
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import useSettings, { AppFullScreen } from '@/hooks/useAppSettings';
 
 export default function AppFullscreenSetting() {
   const [settings, setSettings] = useSettings();
@@ -19,11 +19,11 @@ export default function AppFullscreenSetting() {
     </Label>
     <Select
       name="app-fullscreen"
-      value={settings.fullScreen ? 'Yes' : "No"}
+      value={settings.fullScreen === AppFullScreen.yes ? 'yes' : "no"}
       onValueChange={(value) => {
         setSettings({
           ...settings,
-          fullScreen: value === "Yes"
+          fullScreen: value === 'yes' ? AppFullScreen.yes : AppFullScreen.no
         });
       }}
     >
@@ -31,8 +31,8 @@ export default function AppFullscreenSetting() {
         <SelectValue placeholder="Use Fullscreen" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="Yes">Yes</SelectItem>
-        <SelectItem value="No">No</SelectItem>
+        <SelectItem value="yes">Yes</SelectItem>
+        <SelectItem value="no">No</SelectItem>
       </SelectContent>
     </Select>
   </>

@@ -1,5 +1,5 @@
-import PoemFormSetting from "./Poem/FormSetting";
-import PoemStyleSetting from "./Poem/StyleSetting";
+import PoemFormSetting from '@/components/Settings/Poem/FormSetting';
+import PoemStyleSetting from '@/components/Settings/Poem/StyleSetting';
 
 export default function PoemSetting() {
   return <>

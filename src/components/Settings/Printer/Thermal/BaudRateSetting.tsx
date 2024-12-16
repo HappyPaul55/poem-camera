@@ -6,14 +6,15 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import usePrinter from "@/hooks/usePrinter";
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import usePrinter from '@/hooks/usePrinter';
+import { PrinterDriver, PrinterType } from '@/hooks/usePrinterSettings';
 
 export default function PrinterThermalBaudRateSetting() {
   const { printer, setPrinter } = usePrinter();
 
-  if (printer.type !== 'thermal' || printer.driver !== 'serial') {
+  if (printer.type !== PrinterType.thermal || printer.driver !== PrinterDriver.serial) {
     return undefined;
   }
 

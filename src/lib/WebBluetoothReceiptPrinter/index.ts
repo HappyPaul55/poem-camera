@@ -251,17 +251,6 @@ export default class WebBluetoothReceiptPrinter {
     }
   }
 
-  async reconnect(previousDevice: BluetoothDevice): Promise<void> {
-    if (!navigator.bluetooth.getDevices) return;
-
-    const devices = await navigator.bluetooth.getDevices();
-    const device = devices.find((d) => d.id === previousDevice.id);
-
-    if (device) {
-      await this.open(device);
-    }
-  }
-
   private async open(device: BluetoothDevice): Promise<void> {
     this.device = device;
     const server = await this.device.gatt?.connect();

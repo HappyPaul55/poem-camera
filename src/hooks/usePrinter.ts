@@ -1,51 +1,22 @@
 'use client'
 
-import useLocalStorageState from "use-local-storage-state";
 import WebBluetoothReceiptPrinter, { EmitterEvents } from "@/lib/WebBluetoothReceiptPrinter";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect } from "react";
 import ReceiptPrinterEncoder from "@point-of-sale/receipt-printer-encoder";
 import PrinterConnectionContext from "@/lib/PrinterConnectionContext";
+import usePrinterSettings, { PrinterDriver, PrinterType } from "@/hooks/usePrinterSettings";
 
-export type NoPrinter = {
-  type: 'none'
-}
-
-export type ThermalPrinterSerial = {
-  type: 'thermal',
-  driver: 'serial',
-  model: string,
-  baudRate: 9600 | 38400 | 115200,
+export enum ConnectionStatus {
+  disconnected,
+  connecting,
+  connected,
 };
-
-export type ThermalPrinterUsb = {
-  type: 'thermal',
-  driver: 'usb',
-  model: string,
-};
-
-export type ThermalPrinterBluetooth = {
-  type: 'thermal',
-  driver: 'bluetooth',
-  model: string,
-};
-
-export type ThermalPrinter = ThermalPrinterSerial | ThermalPrinterUsb | ThermalPrinterBluetooth;
-
-export type ImagePrinter = {
-  type: 'image',
-};
-
-export type Printer = NoPrinter | ThermalPrinter | ImagePrinter;
 
 export default function usePrinter() {
   /**
    * The printer settings. 
    */
-  const [settings, setSettings] = useLocalStorageState<Printer>('printer', {
-    defaultValue: {
-      type: 'none',
-    },
-  });
+  const [settings, setSettings] = usePrinterSettings();
 
   const {
     setDriver,
@@ -66,14 +37,14 @@ export default function usePrinter() {
     return () => clearTimeout(timeout);
   }, [isConnecting, setIsConnecting])
 
-  const printerModel = settings.type === 'thermal'
+  const printerModel = settings.type === PrinterType.thermal
     ? settings.model
     : undefined;
 
   // Use wants to connect.
   const connect = useCallback(() => {
-    if (settings.type !== 'thermal'
-      || settings.driver !== 'bluetooth'
+    if (settings.type !== PrinterType.thermal
+      || settings.driver !== PrinterDriver.bluetooth
       || device !== undefined
       || isConnecting
     ) {
@@ -81,7 +52,6 @@ export default function usePrinter() {
     }
 
     const driver = new WebBluetoothReceiptPrinter();
-    alert("Driving")
     driver.addEventListener('connected', (device: EmitterEvents["connected"][0]) => {
       setDriver(driver)
       setDevice(device);
@@ -91,7 +61,8 @@ export default function usePrinter() {
         printerModel,
       });
 
-      const data = encoder
+      /* Print the header. */
+      driver.print(encoder
         .initialize()
         .align('center')
         .size(2, 2)
@@ -104,16 +75,18 @@ export default function usePrinter() {
         .newline()
         .newline()
         .newline()
-        .newline();
-
-      /* Print the header. */
-      driver.print(data.encode());
+        .newline()
+        .encode(),
+      );
     })
     driver.addEventListener('disconnected', () => {
       console.log("disconnected")
       setDevice(undefined);
       setIsConnecting(false);
     });
+    driver.addEventListener('data', (data: any) => {
+      console.log({ data })
+    })
     driver.connect();
     setIsConnecting(true);
   }, [printerModel, device, isConnecting, setIsConnecting, setDevice])
@@ -124,7 +97,7 @@ export default function usePrinter() {
     setPrinter: setSettings,
     connect,
     status: (isConnecting
-      ? 'connecting'
-      : (device ? 'connected' : 'disconnected')) as 'connecting' | 'connected' | 'disconnected',
+      ? ConnectionStatus.connecting
+      : (device ? ConnectionStatus.connected : ConnectionStatus.disconnected)),
   };
 }

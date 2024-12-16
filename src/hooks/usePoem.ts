@@ -1,7 +1,6 @@
-import usePoemForm from "./usePoemForm";
-import { useEffect, useState } from "react";
-import Poem from "@/types/Poem";
-import usePoemStyle from "./usePoemStyle";
+import { useEffect, useState } from 'react';
+import Poem from '@/types/Poem';
+import usePoemSettings from '@/hooks/usePoemSettings';
 
 async function convertFrameToPoem(poemForm: string, poemStyle: string, frame: string): Promise<Poem> {
   const response = await fetch('/api/poem', {
@@ -16,14 +15,14 @@ async function convertFrameToPoem(poemForm: string, poemStyle: string, frame: st
   const body = await response.json() as any;
 
   return {
+    ai: body.ai,
     title: body.title,
     body: body.body,
   };
 }
 
 export default function usePoem() {
-  const [poemForm] = usePoemForm();
-  const [poemStyle] = usePoemStyle();
+  const [poemSettings] = usePoemSettings();
   const [frame, setFrame] = useState<string | undefined>(undefined);
   const [poem, setPoem] = useState<Poem | undefined>(undefined);
   const [error, setError] = useState<Error | undefined>(undefined);
@@ -32,10 +31,10 @@ export default function usePoem() {
     if (frame === undefined) {
       return;
     }
-    convertFrameToPoem(poemForm, poemStyle, frame)
+    convertFrameToPoem(poemSettings.form, poemSettings.style, frame)
       .then(setPoem)
       .catch(setError)
-  }, [poemForm, poemStyle, setPoem, frame]);
+  }, [poemSettings.form, poemSettings.style, setPoem, frame]);
 
   useEffect(() => {
     if (frame === undefined && poem !== undefined) {

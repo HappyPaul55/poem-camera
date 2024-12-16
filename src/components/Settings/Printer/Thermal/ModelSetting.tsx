@@ -7,16 +7,17 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import usePrinter from "@/hooks/usePrinter";
-import { Separator } from "@radix-ui/react-select";
-import ReceiptPrinterEncoder from "@point-of-sale/receipt-printer-encoder";
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import usePrinter from '@/hooks/usePrinter';
+import { Separator } from '@radix-ui/react-select';
+import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder';
+import { PrinterType } from '@/hooks/usePrinterSettings';
 
 export default function PrinterThermalModelSetting() {
   const { printer, setPrinter } = usePrinter();
 
-  if (printer.type !== 'thermal') {
+  if (printer.type !== PrinterType.thermal) {
     return undefined;
   }
   return <>

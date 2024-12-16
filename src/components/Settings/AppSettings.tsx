@@ -1,5 +1,5 @@
-import AppFullscreenSetting from "./App/FullscreenSetting";
-import AppPreviewSetting from "./App/PreviewSetting";
+import AppFullscreenSetting from '@/components/Settings/App/FullscreenSetting';
+import AppPreviewSetting from '@/components/Settings/App/PreviewSetting';
 
 export default function AppSetting() {
   return <>
