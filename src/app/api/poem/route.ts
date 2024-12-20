@@ -1,6 +1,6 @@
 import { generateText } from 'ai';
 import { createXai } from '@ai-sdk/xai';
-import { createMistral, mistral } from '@ai-sdk/mistral';
+import { createMistral } from '@ai-sdk/mistral';
 import z from 'zod';
 import sharp from 'sharp';
 import poemForms, { PoemFormsNames } from '@/lib/poemForms';
@@ -24,12 +24,9 @@ export type RequestFormat = z.infer<typeof requestFormat>;
 const xai = createXai({
   apiKey: process.env.XAI_API_KEY!,
 });
-
-const initialSystemMessage = 'You are a photo to %form% printer. You will be given a picture from the user, you need to return a short %form% that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well. Responses should not be generic and must be about the picture provided. The first line will be the the title of the %form%, the rest will be the poem contents only.';
-const initialSystemMessageWithCategory = initialSystemMessage + ' The %form% should be %style%.';
-const initialSystemMessageWithPerson = initialSystemMessage + ' The %form% must be written in the style of %style%.';
-const initialSystemMessageDetective = 'You are playing a mystery murder game. You are Detective %form% and must look at the photo provided by the user for clues, everyone and everything you see could be clue. Write a short description in the style of a poem of what you see such as threats, motives, and other creative ideas. The first line will be the the title of the %form% poem, the rest will be the poem contents only.';
-const initialSystemMessageDebug = 'You are a futureistic AI scanning camera for a sci-fi movie. You will be given a photo, you must analyse it and create a "data sheet" of what you see. The more you see, the more you should output but at most, you should output no more than 40 lines. The first line will be a very short summary of what you see, the rest of the content will be the "data sheet".';
+const mistral = createMistral({
+  apiKey: process.env.MISTRAL_API_KEY!,
+});
 
 async function webp2Jpeg(image: string): Promise<Buffer> {
   const buffer = Buffer.from(image, 'base64');
@@ -49,6 +46,37 @@ function getAi() {
       name: 'Mistral',
       model: mistral('pixtral-12b-2409'),
     } as const;
+}
+
+function getPrompt(
+  form: PoemFormsNames,
+  style: PoemStyleNames,
+) {
+  let template = `You are a photo to ${form} printer. You will be given a picture from the user, you need to return a short ${form} that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well. Responses should not be generic and must be about the picture provided. The first line will be the the title of the ${form}, the rest will be the poem contents only.`;
+
+  if (form === 'Tongue Twister') {
+    template += ` A tongue twister is something difficult to articulate rapidly, usually because of a succession of similar consonantal sounds, as in Shall she sell seashells? Make sure it's really hard to say the ${form}.`;
+  } else if (form === "Debug") {
+    template = 'You are a futureistic AI scanning camera for a sci-fi movie. You will be given a photo, you must analyse it and create a "data sheet" of what you see. The more you see, the more you should output but at most, you should output no more than 40 lines. The first line will be a very short summary of what you see, the rest of the content will be the "data sheet". Any people in the photo must be analysed for their expression, mood, and key facial features - ideally with a few funny lines every now and then.';
+  }
+
+  if (poemStyles.Theme.find(
+    possibleStyle => possibleStyle.name === style
+  )) {
+    // Theme styles
+    template += ` The ${form} should be ${style}.`;
+  } else if (style === 'An Angry Person') {
+    // An angry person
+    template += ` The ${form} should be angry, insulting like a putdown, but still funny.`;
+  } else if (poemStyles.Novelty.find(
+    possibleStyle => possibleStyle.name === style
+  )) {
+    // Novelty People
+    template += `The ${form} must be written as-if it was written by a ${style}.`;
+  } else {
+    // Famous Poets
+    template += `The ${form} must be written as-if it was written by the famour poet ${style}.`;
+  }
 }
 
 export async function POST(request: Request) {

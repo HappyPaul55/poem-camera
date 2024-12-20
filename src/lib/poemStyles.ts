@@ -12,7 +12,7 @@ const poemStyles = {
   "Novelty": [
     { name: "Master Yoda" },
     { name: "A Young Child" },
-    { name: "An Angry Person with Tourettes" },
+    { name: "An Angry Person" },
     { name: "Donald Trump" },
   ],
 

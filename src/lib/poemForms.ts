@@ -1,6 +1,5 @@
 const poemForms = {
   "Categories": [
-    { name: "Ballad" },
     { name: "Haiku" },
     { name: "Limerick" },
     { name: "Poem" },
