@@ -77,6 +77,8 @@ function getPrompt(
     // Famous Poets
     template += `The ${form} must be written as-if it was written by the famour poet ${style}.`;
   }
+
+  return template;
 }
 
 export async function POST(request: Request) {
@@ -87,32 +89,17 @@ export async function POST(request: Request) {
     throw new Error('Encoding must be "base64"');
   }
 
-  // Use different prompts based on settings.
-  let systemMessageTemplate = initialSystemMessageWithCategory;
-  if (poemStyles.Theme.map(row => row.name).includes(style as any)) {
-    systemMessageTemplate = initialSystemMessageWithPerson;
-  }
-  if (form === 'Detective') {
-    systemMessageTemplate = initialSystemMessageDetective;
-  }
-  if (form === 'Debug') {
-    systemMessageTemplate = initialSystemMessageDebug;
-  }
-
   const imageData =
     format !== 'image/webp'
       ? Buffer.from(data, 'base64')
       : await webp2Jpeg(data);
 
-  const systemPrompt = systemMessageTemplate
-    .replaceAll('%form%', form)
-    .replaceAll('%style%', style);
 
   const ai = getAi();
 
   const { text } = await generateText({
     model: ai.model,
-    system: systemPrompt,
+    system: getPrompt(form, style),
     messages: [
       {
         role: 'user',
