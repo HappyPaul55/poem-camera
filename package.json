@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/mistral": "^1.0.5",
     "@ai-sdk/xai": "^1.0.5",
     "@point-of-sale/receipt-printer-encoder": "^3.0.2",
     "@point-of-sale/webbluetooth-receipt-printer": "^2.0.0",
