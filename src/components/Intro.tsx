@@ -12,7 +12,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 
 function IntroGallery() {
-  return <Carousel className="w-full max-w-48 md:max-w-xs">
+  return <Carousel className="w-full max-w-40 md:max-w-xs">
     <CarouselContent>
       <CarouselItem>
         <div className="p-1">
