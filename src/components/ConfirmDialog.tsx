@@ -29,7 +29,7 @@ export default function ConfirmDialog(props: ConfirmDialogProps) {
   }, [props.onConfirm]);
 
   return <Dialog open={true} onOpenChange={openChangeHandler}>
-    <DialogContent className="max-h-[90vh]">
+    <DialogContent className="max-h-[90vh] overflow-auto">
       <DialogHeader>
         <DialogTitle>How does it look?</DialogTitle>
         <DialogDescription>

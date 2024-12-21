@@ -79,6 +79,41 @@ declare module "@point-of-sale/receipt-printer-encoder" {
     line(content: string): this;
 
     /**
+     * Image
+     *
+     * @param  {object} input  an element, like a canvas or image that needs to be printed
+     * @param  {number} width  width of the image on the printer
+     * @param  {number} height  height of the image on the printer
+     * @param  {string} algorithm  the dithering algorithm for making the image black and white
+     * @param  {number} threshold  threshold for the dithering algorithm
+     * @return {object} Return the object, for easy chaining commands
+     */
+    image(
+      input: object,
+      width: number,
+      height: number,
+      algorithm: 'floydsteinberg' | 'atkinson',
+    ): this;
+
+    /**
+     * Image
+     *
+     * @param  {object} input  an element, like a canvas or image that needs to be printed
+     * @param  {number} width  width of the image on the printer
+     * @param  {number} height  height of the image on the printer
+     * @param  {string} algorithm  the dithering algorithm for making the image black and white
+     * @param  {number} threshold  threshold for the dithering algorithm
+     * @return {object} Return the object, for easy chaining commands
+     */
+    image(
+      input: object,
+      width: number,
+      height: number,
+      algorithm: 'threshold' | 'bayer',
+      threshold: number,
+    ): this;
+
+    /**
      * Insert a horizontal rule
      */
     rule(options?: { style?: 'single' | 'double', width?: number }): this;

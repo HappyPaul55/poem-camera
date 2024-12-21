@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { DialogClose, DialogDescription } from '@radix-ui/react-dialog';
 import { useCallback, useContext, useEffect, useState } from 'react'
 import { ImSpinner5 } from 'react-icons/im';
@@ -27,7 +26,7 @@ type PoemDialogProps = {
 
 function PoemDialogContent(props: PoemDialogProps) {
   const [settings] = useSettings();
-  const { printer } = usePrinter();
+  const { printer, connect } = usePrinter();
   const { driver, device } = useContext(PrinterConnectionContext);
 
   const printHandler = useCallback(() => {
@@ -40,7 +39,11 @@ function PoemDialogContent(props: PoemDialogProps) {
       return;
     }
 
-    if (driver && device && printer.type == PrinterType.thermal) {
+    if (printer.type == PrinterType.thermal) {
+      if (!driver || !device) {
+        connect();
+        return;
+      }
       printPoem(props.poem, driver, printer.model)
       return;
     }
@@ -69,7 +72,7 @@ function PoemDialogContent(props: PoemDialogProps) {
     </>
   }
 
-  return <ScrollArea className="max-h-[85vh] print:max-h-[95vh]">
+  return <>
     <DialogHeader>
       <DialogTitle>
         {props.poem.title}
@@ -97,7 +100,7 @@ function PoemDialogContent(props: PoemDialogProps) {
         </Button>
       </DialogClose>
     </DialogFooter>
-  </ScrollArea>
+  </>
 }
 
 export default function PoemDialog(props: PoemDialogProps) {
@@ -115,7 +118,7 @@ export default function PoemDialog(props: PoemDialogProps) {
     setOpen(false);
   }, [props.poem, props.onClose]);
   return <Dialog modal open={open} onOpenChange={openChangeHandler}>
-    <DialogContent>
+    <DialogContent className="max-h-[85vh] print:max-h-[95vh] overflow-auto">
       <PoemDialogContent onClose={props.onClose} poem={props.poem} />
     </DialogContent>
   </Dialog>;
