@@ -10,6 +10,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel'
 import { Card, CardContent } from '@/components/ui/card';
+import goFullscreen from '@/lib/goFullscreen';
 
 function IntroGallery() {
   return <Carousel className="w-full max-w-40 md:max-w-xs">
@@ -83,29 +84,12 @@ function IntroGallery() {
 export default function Intro(props: { onBooted: () => void }) {
   const [settings] = useSettings();
   const bootHandler = useCallback(() => {
-    const element = document.getElementsByTagName("body")[0];
-    if (!element) {
-      return;
-    }
-
     if (settings.fullScreen !== AppFullScreen.yes) {
       props.onBooted();
       return;
     }
 
-    // Inject polyfilas for fallbacks.
-    const elem = element as typeof element & Partial<{
-      webkitRequestFullscreen: typeof element["requestFullscreen"],
-      msRequestFullscreen: typeof element["requestFullscreen"],
-    }>;
-
-    if (elem.requestFullscreen) {
-      elem.requestFullscreen();
-    } else if (elem.webkitRequestFullscreen) {
-      elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) {
-      elem.msRequestFullscreen();
-    }
+    goFullscreen();
 
     props.onBooted();
   }, [props.onBooted]);

@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import useSettings, { AppFullScreen } from '@/hooks/useAppSettings';
+import goFullscreen from '@/lib/goFullscreen';
 
 export default function AppFullscreenSetting() {
   const [settings, setSettings] = useSettings();
@@ -25,6 +26,10 @@ export default function AppFullscreenSetting() {
           ...settings,
           fullScreen: value === 'yes' ? AppFullScreen.yes : AppFullScreen.no
         });
+
+        if (value === 'yes') {
+          goFullscreen();
+        }
       }}
     >
       <SelectTrigger className="col-span-3">
