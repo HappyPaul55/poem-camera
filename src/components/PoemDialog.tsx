@@ -49,13 +49,16 @@ function PoemDialogContent(props: PoemDialogProps) {
   }, [driver, device, printer.type, props.poem?.title, props.poem?.body]);
 
   useEffect(() => {
-    if (settings.instantPrint !== AppInstantPrint.yes) {
+    if (printer.type !== PrinterType.thermal
+      || settings.instantPrint !== AppInstantPrint.yes
+      || props.poem === undefined
+    ) {
       return;
     }
 
     printHandler();
     props.onClose()
-  }, [settings.instantPrint, props.onClose, printHandler]);
+  }, [props.poem, printer.type, settings.instantPrint, props.onClose, printHandler]);
 
   if (props.poem === undefined) {
     return <>

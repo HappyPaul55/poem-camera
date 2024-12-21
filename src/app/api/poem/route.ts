@@ -55,7 +55,7 @@ function getPrompt(
   let template = `You are a photo to ${form} printer. You will be given a picture from the user, you need to return a short ${form} that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well. Responses should not be generic and must be about the picture provided. The first line will be the the title of the ${form}, the rest will be the poem contents only.`;
 
   if (form === 'Tongue Twister') {
-    template += ` A tongue twister is something difficult to articulate rapidly, usually because of a succession of similar consonantal sounds, as in Shall she sell seashells? Make sure it's really hard to say the ${form}.`;
+    template += ` A tongue twister is something difficult to articulate rapidly, usually because of a succession of similar consonantal sounds, as in Shall she sell seashells? Make sure it's really hard to say the ${form}, use alliterations.`;
   } else if (form === "Debug") {
     template = 'You are a futureistic AI scanning camera for a sci-fi movie. You will be given a photo, you must analyse it and create a "data sheet" of what you see. The more you see, the more you should output but at most, you should output no more than 40 lines. The first line will be a very short summary of what you see, the rest of the content will be the "data sheet". Any people in the photo must be analysed for their expression, mood, and key facial features - ideally with a few funny lines every now and then.';
   }

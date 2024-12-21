@@ -28,17 +28,21 @@ export default function Camera(props: { onPhoto: (frame: string) => void }) {
   const [devices, setDevices] = useState<MediaDeviceInfo[] | undefined>(undefined);
   const webcamRef = useRef<Webcam>(null);
   const [videoSettings, setVideoSettings] = useState<MediaTrackSettings | undefined>(undefined);
+  const [forceLoading, setForceLoading] = useState(false);
 
   const handleDevices = useCallback(
     (mediaDevices: MediaDeviceInfo[]) => {
       const videoMediaDevices = mediaDevices.filter(({ kind }) => kind === "videoinput");
       setDevices(videoMediaDevices);
-      setDeviceIndex(0)
+      setDeviceIndex(0);
     },
-    [setDevices]
+    [setDevices, setDeviceIndex]
   );
 
   useEffect(() => {
+    if (permissionGranted) {
+      return;
+    }
     (async () => {
       try {
         await (navigator as any).getUserMedia(
@@ -53,24 +57,24 @@ export default function Camera(props: { onPhoto: (frame: string) => void }) {
         );
 
         const devices = await navigator.mediaDevices.enumerateDevices();
-        handleDevices(devices)
+        handleDevices(devices);
       } catch (e) {
         setPermissionGranted(false);
         setDevices([]);
       }
     })();
-  }, [setPermissionGranted, setDevices, handleDevices]);
+  }, [permissionGranted, setPermissionGranted, setDevices, handleDevices]);
 
   const playHandler = useCallback(() => {
     const settings = webcamRef.current?.stream?.getVideoTracks()[0].getSettings();
     if (settings === undefined) {
       return;
     }
-    setVideoSettings(settings)
+    setVideoSettings(settings);
   }, [setVideoSettings, webcamRef]);
 
   useEffect(() => {
-    playHandler()
+    playHandler();
   }, [playHandler]);
 
   const takePhotoHandler = useCallback(() => {
@@ -82,8 +86,10 @@ export default function Camera(props: { onPhoto: (frame: string) => void }) {
   }, [props.onPhoto, webcamRef]);
 
   const switchCameraHandler = useCallback(() => {
-    setDeviceIndex(deviceIndex! + 2 > (devices ?? []).length ? 0 : deviceIndex! + 1)
-  }, [deviceIndex, setDeviceIndex, devices]);
+    setForceLoading(true);
+    setTimeout(() => setDeviceIndex(deviceIndex! + 2 > (devices ?? []).length ? 0 : deviceIndex! + 1), 200);
+    setTimeout(() => setForceLoading(false), 600);
+  }, [devices, deviceIndex, setDeviceIndex, setForceLoading]);
 
   if (permissionGranted === false) {
     return <NoAccessGranted />
@@ -93,7 +99,7 @@ export default function Camera(props: { onPhoto: (frame: string) => void }) {
     return <NoDevicesFound />
   }
 
-  if (devices === undefined || deviceIndex === undefined) {
+  if (devices === undefined || deviceIndex === undefined || forceLoading) {
     return <Loading />
   }
 
@@ -116,7 +122,7 @@ export default function Camera(props: { onPhoto: (frame: string) => void }) {
       >
         <MdCamera className="w-14 h-14 m-2" />
       </button>
-      {((devices ?? []).length > 1) && <button
+      {((devices ?? []).length > 0) && <button
         className=" bg-blue-600 border-4 border-white mx-auto rounded-full hover:bg-blue-500 text-white"
         onClick={switchCameraHandler}
         title="Switch camera"
