@@ -21,12 +21,12 @@ const requestFormat = z.object({
 
 export type RequestFormat = z.infer<typeof requestFormat>;
 
-const xai = createXai({
-  apiKey: process.env.XAI_API_KEY!,
-});
-const mistral = createMistral({
-  apiKey: process.env.MISTRAL_API_KEY!,
-});
+const xai = process.env.XAI_API_KEY ? createXai({
+  apiKey: process.env.XAI_API_KEY,
+}) : undefined;
+const mistral = process.env.MISTRAL_API_KEY ? createMistral({
+  apiKey: process.env.MISTRAL_API_KEY,
+}) : undefined;
 
 async function webp2Jpeg(image: string): Promise<Buffer> {
   const buffer = Buffer.from(image, 'base64');
@@ -37,21 +37,31 @@ async function webp2Jpeg(image: string): Promise<Buffer> {
 }
 
 function getAi() {
-  return Math.random() > 0.5
-    ? {
+  const models: { name: string, model: ReturnType<ReturnType<typeof createMistral>> }[] = [];
+  if (xai !== undefined) {
+    models.push({
       name: 'X.ai',
       model: xai('grok-vision-beta')
-    } as const
-    : {
-      name: 'Mistral',
+    });
+  }
+  if (mistral !== undefined) {
+    models.push({
+      name: 'X.ai',
       model: mistral('pixtral-12b-2409'),
-    } as const;
+    });
+  }
+
+  if (models.length === 0) {
+    throw new Error('At least one AI must be provided');
+  }
+
+  return models[Math.floor(Math.random() * models.length)];
 }
 
 function getPrompt(
   form: PoemFormsNames,
   style: PoemStyleNames,
-) {
+): string {
   let template = `You are a photo to ${form} printer. You will be given a picture from the user, you need to return a short ${form} that is highly related to the picture provided. Make reference to what is in the foreground and optionally the background as well. Responses should not be generic and must be about the picture provided. The first line will be the the title of the ${form}, the rest will be the poem contents only.`;
 
   if (form === 'Tongue Twister') {
