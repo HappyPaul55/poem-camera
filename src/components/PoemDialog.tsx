@@ -118,7 +118,7 @@ export default function PoemDialog(props: PoemDialogProps) {
     setOpen(false);
   }, [props.poem, props.onClose]);
   return <Dialog modal open={open} onOpenChange={openChangeHandler}>
-    <DialogContent className="max-h-[85vh] print:max-h-[95vh] overflow-auto">
+    <DialogContent className="max-h-[85vh] print:max-h-[95vh]">
       <PoemDialogContent onClose={props.onClose} poem={props.poem} />
     </DialogContent>
   </Dialog>;

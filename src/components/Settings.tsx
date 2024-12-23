@@ -24,7 +24,7 @@ export default function Settings() {
           <MdSettings />
         </Button>
       </SheetTrigger>
-      <SheetContent className="overflow-auto">
+      <SheetContent>
         <SheetHeader>
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>

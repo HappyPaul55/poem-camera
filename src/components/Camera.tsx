@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { MdCamera, MdOutlineFlipCameraAndroid } from 'react-icons/md';
+import FileUploadButton from './FileUploadButton';
 
 function Loading() {
   return <div className="bg-blue-600 bg-opacity-80 flex items-center justify-center text-3xl text-white">
@@ -10,19 +11,18 @@ function Loading() {
   </div>;
 }
 
-function NoDevicesFound() {
-  return <div className="bg-red-600 bg-opacity-80 flex items-center justify-center text-3xl">
-    <strong>Error:&nbsp;&nbsp;</strong> No devices found!
+function Error(props: CameraProps & { children: ReactNode }) {
+  return <div className="bg-red-600 bg-opacity-80 flex items-center justify-center text-3xl print:hidden">
+    <div>
+      <strong>Error: </strong> {props.children}
+      <FileUploadButton onPhoto={props.onPhoto} className="mt-5">Upload File Instead</FileUploadButton>
+    </div>
   </div>
 }
 
-function NoAccessGranted() {
-  return <div className="bg-red-600 bg-opacity-80 flex items-center justify-center text-3xl">
-    <strong>Error:&nbsp;&nbsp;</strong> No access granted!
-  </div>
-}
+type CameraProps = { onPhoto: (frame: string) => void };
 
-export default function Camera(props: { onPhoto: (frame: string) => void }) {
+export default function Camera(props: CameraProps) {
   const [permissionGranted, setPermissionGranted] = useState<boolean | undefined>(undefined);
   const [deviceIndex, setDeviceIndex] = useState<number | undefined>(undefined);
   const [devices, setDevices] = useState<MediaDeviceInfo[] | undefined>(undefined);
@@ -92,11 +92,11 @@ export default function Camera(props: { onPhoto: (frame: string) => void }) {
   }, [devices, deviceIndex, setDeviceIndex, setForceLoading]);
 
   if (permissionGranted === false) {
-    return <NoAccessGranted />
+    return <Error onPhoto={props.onPhoto}>No access granted!</Error>
   }
 
   if (devices !== undefined && devices.length === 0) {
-    return <NoDevicesFound />
+    return <Error onPhoto={props.onPhoto}>No devices found!</Error>
   }
 
   if (devices === undefined || deviceIndex === undefined || forceLoading) {

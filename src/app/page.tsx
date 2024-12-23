@@ -11,6 +11,8 @@ import Printer from '@/components/Printer';
 import PrinterConnectionContext from '@/lib/PrinterConnectionContext';
 import WebBluetoothReceiptPrinter from '@/lib/WebBluetoothReceiptPrinter';
 import useSettings, { AppPreviewMode } from '@/hooks/useAppSettings';
+import FileUploadButton from '@/components/FileUploadButton';
+import { ImCloudUpload } from 'react-icons/im';
 
 export default function Home() {
   // Intro.
@@ -62,6 +64,7 @@ export default function Home() {
         {frame && <PoemDialog onClose={peomOnCloseHandler} poem={poem} />}
       </main>
       <div className="absolute top-8 right-8 text-black z-50 flex gap-2 print:hidden">
+        <FileUploadButton onPhoto={settings.preview === AppPreviewMode.always ? setPreview : setFrame}><ImCloudUpload /></FileUploadButton>
         <Printer />
         <Settings />
       </div>
