@@ -62,11 +62,12 @@ export class PoemSourceError extends Error {
 }
 
 /**
- * Upper bound on the model's reply, in tokens. Generous because reasoning
- * models (e.g. Gemma 4) spend tokens thinking before they write the poem, and
- * `Debug` can run to ~40 lines.
+ * Upper bound on the model's reply, in tokens. Sized to fit a ~5,000-character
+ * poem (roughly 1,250 tokens) and still leave plenty of room for reasoning
+ * models (e.g. Gemma 4) that think before they write. This is only a cap — the
+ * model stops as soon as it is finished.
  */
-const MAX_RESPONSE_TOKENS = 4096;
+const MAX_RESPONSE_TOKENS = 8192;
 
 /** How long to wait for the model before giving up. Vision calls can be slow. */
 const REQUEST_TIMEOUT_MS = 30_000;

@@ -162,7 +162,8 @@ it that way.
   `reasoning_content` that must be ignored. `workersAiReply()` in
   `poem-source.ts` normalises this — route any new Workers AI parsing through it.
   Gemma 4 is a reasoning model, so `MAX_RESPONSE_TOKENS` must stay large enough
-  for the thinking *and* the poem (it is 4096).
+  for the thinking *and* the poem (it is 8192, sized for a ~5,000-character poem;
+  it is only a cap, so unused tokens cost nothing).
 - `@point-of-sale/receipt-printer-encoder` ships no types; they live in
   `src/types/receipt-printer-encoder.d.ts`. Web Bluetooth types come from
   `@types/web-bluetooth`, referenced from `src/types/web-bluetooth.d.ts`.

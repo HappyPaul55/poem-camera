@@ -79,9 +79,10 @@ Workers AI is included in the Workers Free plan with **10,000 Neurons/day free**
 resetting at 00:00 UTC. No API key or account ID is needed. The default model is
 `@cf/google/gemma-4-26b-a4b-it`, a vision-capable model on the free tier. It is a
 **reasoning** model, so it spends tokens thinking before it writes the poem;
-`MAX_RESPONSE_TOKENS` (4096) is deliberately generous to leave room for both
-(roughly 100+ poems/day on the free tier). Set `AI_MODEL` to use a different
-vision model. Some frontier models (Kimi, GLM-5.2/5.3, DeepSeek V4) require the
+`MAX_RESPONSE_TOKENS` (8192) is deliberately generous — enough for a
+~5,000-character poem plus the thinking. It is only a cap, so unused tokens cost
+nothing (roughly 100+ poems/day on the free tier). Set `AI_MODEL` to use a
+different vision model. Some frontier models (Kimi, GLM-5.2/5.3, DeepSeek V4) require the
 paid plan and return `403` on Free.
 
 ### OpenAI-compatible HTTP (local dev / other providers)
