@@ -96,7 +96,7 @@ There are two generators behind the one interface, chosen at runtime by
 
 The binding wins when both are configured. `AI_MODEL` overrides the model for
 whichever implementation is active; the binding default is
-`@cf/meta/llama-4-scout-17b-16e-instruct`, the HTTP default is `gpt-4o-mini`.
+`@cf/google/gemma-4-26b-a4b-it`, the HTTP default is `gpt-4o-mini`.
 `AI_ENDPOINT` / `AI_API_KEY` / `AI_MODEL` are read from `.env` in local dev and
 `.dev.vars` under `wrangler dev`; production normally sets no AI vars because it
 uses the binding. Do not add these to `settings.json` or any client code.
@@ -154,9 +154,15 @@ it that way.
   do not import `@cloudflare/workers-types` for it.
 - **Workers AI chat vision models need the frame as an `image_url` content part**
   (`{ type: "text" }, { type: "image_url", image_url: { url } }`), not the
-  top-level `image` field. `image` is silently ignored by models like Llama 4
-  Scout — the request succeeds but the model reports no photo. The top-level
-  field only works for older models such as Llama 3.2 Vision.
+  top-level `image` field. `image` is silently ignored by models like Gemma 4 —
+  the request succeeds but the model reports no photo. The top-level field only
+  works for older models such as Llama 3.2 Vision.
+- Workers AI reply shapes differ: some models return a top-level `response`,
+  others (Gemma 4) only `choices[0].message.content`, and reasoning models add a
+  `reasoning_content` that must be ignored. `workersAiReply()` in
+  `poem-source.ts` normalises this — route any new Workers AI parsing through it.
+  Gemma 4 is a reasoning model, so `MAX_RESPONSE_TOKENS` must stay large enough
+  for the thinking *and* the poem (it is 4096).
 - `@point-of-sale/receipt-printer-encoder` ships no types; they live in
   `src/types/receipt-printer-encoder.d.ts`. Web Bluetooth types come from
   `@types/web-bluetooth`, referenced from `src/types/web-bluetooth.d.ts`.

@@ -61,8 +61,12 @@ export class PoemSourceError extends Error {
   }
 }
 
-/** Upper bound on the model's reply, in tokens. `Debug` can run to ~40 lines. */
-const MAX_RESPONSE_TOKENS = 1200;
+/**
+ * Upper bound on the model's reply, in tokens. Generous because reasoning
+ * models (e.g. Gemma 4) spend tokens thinking before they write the poem, and
+ * `Debug` can run to ~40 lines.
+ */
+const MAX_RESPONSE_TOKENS = 4096;
 
 /** How long to wait for the model before giving up. Vision calls can be slow. */
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -74,8 +78,7 @@ const DEFAULT_MODEL = "gpt-4o-mini";
  * Default model for the Workers AI implementation: a vision-capable model
  * available on the Workers Free plan. Override with `AI_MODEL`.
  */
-export const DEFAULT_WORKERS_AI_MODEL =
-  "@cf/meta/llama-4-scout-17b-16e-instruct";
+export const DEFAULT_WORKERS_AI_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 
 export function buildPrompt(
   form: PoemFormsNames,
@@ -206,6 +209,29 @@ export function createEndpointGenerator(config: PoemSourceEnv): PoemGenerator {
 }
 
 /**
+ * Pull the assistant text out of a Workers AI reply. The binding is
+ * inconsistent: some models (e.g. Llama 4 Scout) return a top-level `response`
+ * string, while others (e.g. Gemma 4) only return OpenAI-style
+ * `choices[0].message.content`. Reasoning models also carry a separate
+ * `reasoning_content` we must not include.
+ */
+function workersAiReply(result: unknown): string {
+  if (!result || typeof result !== "object") return "";
+
+  const reply = result as {
+    response?: unknown;
+    choices?: { message?: { content?: unknown } }[];
+  };
+
+  if (typeof reply.response === "string" && reply.response.trim()) {
+    return reply.response;
+  }
+
+  const content = reply.choices?.[0]?.message?.content;
+  return typeof content === "string" ? content : "";
+}
+
+/**
  * The Cloudflare Workers AI implementation. Chat vision models take the frame
  * as an OpenAI-style `image_url` content part (a base64 data URL) and answer
  * with `{ response }`. The top-level `image` field only works for a few older
@@ -240,12 +266,9 @@ export function createWorkersAiGenerator(
         throw new PoemSourceError("Could not reach the poem service.", 502);
       }
 
-      const content =
-        result && typeof result === "object" && "response" in result
-          ? (result as { response?: unknown }).response
-          : "";
+      const content = workersAiReply(result);
 
-      if (typeof content !== "string" || !content.trim()) {
+      if (!content.trim()) {
         throw new PoemSourceError("The poem service came back empty.", 422);
       }
 

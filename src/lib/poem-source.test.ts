@@ -168,7 +168,35 @@ describe("createWorkersAiGenerator", () => {
       },
     };
     await createWorkersAiGenerator(ai).generate(image, "Haiku", "Humorous");
-    expect(model).toBe("@cf/meta/llama-4-scout-17b-16e-instruct");
+    expect(model).toBe("@cf/google/gemma-4-26b-a4b-it");
+  });
+
+  test("reads an OpenAI-style choices reply, ignoring reasoning", async () => {
+    const ai: WorkersAiBinding = {
+      async run() {
+        return {
+          choices: [
+            {
+              message: {
+                content: "A Title\nthe body",
+                reasoning_content: "private chain of thought",
+              },
+            },
+          ],
+        };
+      },
+    };
+
+    const poem = await createWorkersAiGenerator(ai).generate(
+      image,
+      "Haiku",
+      "Humorous",
+    );
+    expect(poem).toEqual({
+      ai: "@cf/google/gemma-4-26b-a4b-it",
+      title: "A Title",
+      body: "the body",
+    });
   });
 
   test("throws when the model comes back empty", async () => {

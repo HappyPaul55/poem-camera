@@ -76,12 +76,13 @@ The Worker binds Workers AI in `wrangler.jsonc`:
 ```
 
 Workers AI is included in the Workers Free plan with **10,000 Neurons/day free**,
-resetting at 00:00 UTC. No API key or account ID is needed. The default model,
-`@cf/meta/llama-4-scout-17b-16e-instruct`, is vision-capable and on the free tier
-(roughly 150–200 poems/day). Set `AI_MODEL` to
-`@cf/meta/llama-3.2-11b-vision-instruct` for a cheaper model (~400+ poems/day).
-Some frontier models (Kimi, GLM-5.2/5.3, DeepSeek V4) require the paid plan and
-return `403` on Free.
+resetting at 00:00 UTC. No API key or account ID is needed. The default model is
+`@cf/google/gemma-4-26b-a4b-it`, a vision-capable model on the free tier. It is a
+**reasoning** model, so it spends tokens thinking before it writes the poem;
+`MAX_RESPONSE_TOKENS` (4096) is deliberately generous to leave room for both
+(roughly 100+ poems/day on the free tier). Set `AI_MODEL` to use a different
+vision model. Some frontier models (Kimi, GLM-5.2/5.3, DeepSeek V4) require the
+paid plan and return `403` on Free.
 
 ### OpenAI-compatible HTTP (local dev / other providers)
 
@@ -91,7 +92,7 @@ Configuration is entirely via environment variables:
 | ------------- | ---------------------- | ------------------------------------------------------------------ |
 | `AI_ENDPOINT` | for the HTTP implementation | Full URL of an OpenAI-compatible, vision-capable endpoint      |
 | `AI_API_KEY`  | for the HTTP implementation | Secret. `wrangler secret put AI_API_KEY` in production         |
-| `AI_MODEL`    | no                     | Binding default is `@cf/meta/llama-4-scout-17b-16e-instruct`; HTTP default is `gpt-4o-mini` |
+| `AI_MODEL`    | no                     | Binding default is `@cf/google/gemma-4-26b-a4b-it`; HTTP default is `gpt-4o-mini` |
 
 For local development put them in `.env` (git-ignored); for `wrangler dev` use
 `.dev.vars`. Production uses the binding and normally sets none of them. Do not
