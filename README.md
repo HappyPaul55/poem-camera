@@ -17,7 +17,7 @@ in `src/content/site/settings.json`.
 | Route      | What it is                                                              |
 | ---------- | ----------------------------------------------------------------------- |
 | `/`        | Landing page: hero, features, how it works, call to open the camera     |
-| `/app`     | The camera itself (the only page with client-side JavaScript)           |
+| `/app`     | The camera itself (the only page with client-side JavaScript; no site header/footer) |
 | `/privacy` | Privacy notice (rendered from `src/content/legal/privacy.md`)           |
 | `/404`     | Not found — `noindex` and excluded from the sitemap                     |
 | `/api/poem` | POST · turns an image into a poem (server-side, see below)             |

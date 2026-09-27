@@ -107,7 +107,8 @@ reintroduce a server-side image library (`sharp` does not run on Workers).
 ## Client-side architecture
 
 Only `/app` ships JavaScript; the other pages stay static and script-free. Keep
-it that way.
+it that way. `/app` also renders without the site header/footer
+(`chrome={false}` on `BaseLayout`) so it reads as a camera, not a website.
 
 - Do not add a UI component library. Radix/shadcn were deliberately dropped in the
   migration in favour of native `<dialog>` and `<select>`, plus the shared
@@ -139,6 +140,13 @@ it that way.
   `index.html` / `app.html` / etc.; canonical and sitemap URLs have no trailing
   slash. Active-nav logic in `Header.astro` normalises both `.html` and trailing
   slashes. Check `aria-current` in `dist/*.html`, not just in dev.
+- Astro compresses HTML and drops whitespace-only line breaks between a word and
+  an inline tag, joining them (`© 2026<a>HappyPaul55</a>`, `Read the<a>`). Write
+  intentional spaces explicitly as `{" "}` at the end of the text line.
+- `/app` renders without the site header/footer (`chrome={false}` on
+  `BaseLayout`, which adds `no-chrome` to `<body>`). The app CSS uses that to
+  fill the viewport (`100svh`) and add safe-area insets. Keep marketing pages
+  chrome-on.
 - **`Permissions-Policy` must be `camera=(self)`.** Copying B3's `camera=()` would
   silently break `getUserMedia` in production while still working in dev.
 - **CSP** allows `img-src 'self' data:` for the captured frame and

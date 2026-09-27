@@ -16,6 +16,8 @@ interface Props {
   path?: string;
   noindex?: boolean;
   breadcrumbs?: Crumb[];
+  /** Show the site header and footer. Set false for full-bleed app screens. */
+  chrome?: boolean;
 }
 
 const {
@@ -24,6 +26,7 @@ const {
   path = "/",
   noindex = false,
   breadcrumbs,
+  chrome = true,
 } = Astro.props;
 
 const siteEntry = await getEntry("site", "main");
@@ -148,15 +151,15 @@ const site = siteEntry.data;
     <meta name="msapplication-TileImage" content="/icons/mstile-144x144.png" />
     <meta name="msapplication-config" content="/icons/browserconfig.xml" />
   </head>
-  <body>
+  <body class:list={[{ "no-chrome": !chrome }]}>
     <a class="skip-link no-print" href="#main">Skip to content</a>
 
     <p class="print-only print-masthead">
       {site.name} · {site.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
     </p>
 
-    <Header settings={site} />
+    {chrome && <Header settings={site} />}
     <slot />
-    <Footer settings={site} />
+    {chrome && <Footer settings={site} />}
   </body>
 </html>

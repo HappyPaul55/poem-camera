@@ -422,6 +422,25 @@
     display: flex;
     gap: 0.5rem;
   }
+
+  /* Immersive app: no site header/footer (BaseLayout `chrome={false}`), so the
+     camera fills the viewport. Respect the notch/status bar via safe areas. */
+  body.no-chrome .app-page {
+    padding-top: 0;
+  }
+  body.no-chrome .app-shell,
+  body.no-chrome .app-stage,
+  body.no-chrome .app-stage video {
+    min-height: 100svh;
+  }
+  body.no-chrome .app-controls {
+    top: calc(1rem + env(safe-area-inset-top));
+    right: calc(1rem + env(safe-area-inset-right));
+  }
+  body.no-chrome .intro {
+    padding-top: calc(2rem + env(safe-area-inset-top));
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
   .icon-btn {
     display: grid;
     place-items: center;
