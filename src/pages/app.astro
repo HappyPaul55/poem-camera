@@ -1,0 +1,39 @@
+---
+import { getEntry } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import AppRoot from "../components/app/AppRoot.tsx";
+
+const site = (await getEntry("site", "main"))!.data;
+---
+
+<BaseLayout
+  title={`The camera — ${site.name}`}
+  description="Point your camera at the world and an AI writes a short poem about what it sees. Print it to a thermal receipt printer or your own printer. Free, no sign-up."
+  path="/app"
+  breadcrumbs={[
+    { name: "Home", path: "/" },
+    { name: "Camera", path: "/app" },
+  ]}
+>
+  <main id="main" class="app-page">
+    <noscript>
+      <div class="grid-paper px-4 pt-24 pb-16">
+        <p class="alert alert--info mx-auto max-w-[44rem]">
+          The Poem Camera needs JavaScript to run. The
+          <a class="link-arrow" href="/">homepage</a> and the
+          <a class="link-arrow" href="/privacy">privacy notice</a> are readable
+          without it.
+        </p>
+      </div>
+    </noscript>
+
+    <AppRoot client:load />
+
+    <p
+      class="mx-auto w-[min(1160px,100%-2.5rem)] py-5 text-center text-[0.85rem] text-muted"
+    >
+      Photographs become poems in your browser. Read the
+      <a class="link-arrow" href="/privacy">privacy notice</a>.
+    </p>
+  </main>
+</BaseLayout>

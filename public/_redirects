@@ -1,0 +1,7 @@
+# Cloudflare redirects
+# https://developers.cloudflare.com/workers/static-assets/redirects/
+#
+# The old camera lived at the site root; the root is now a landing page and the
+# camera is at /app. The service worker / PWA start URL was already /app.
+# Add one line per redirect, e.g.:
+# /old-path   /new-path   301

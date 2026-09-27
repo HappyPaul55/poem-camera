@@ -1,26 +1,226 @@
 # Poem Camera
-The Poem Camera is a webapp that doesn't take photos like other cameras, but instead takes poems of what it sees. Think of it like a Polaroid but instead of instant photos, it's instant poems.
 
-## Features
-These are just current ones, feel free to create your own - make a PR...
+A camera that doesn't take photos — it takes poems. Point it at the world and an
+AI writes a short poem about what's in front of you, ready to print to a thermal
+receipt printer or your own printer.
 
-### Multiple Camera Support
-Like your native camera app, you can toggle all connected cameras.
+Built with [Astro](https://astro.build) and [Tailwind CSS v4](https://tailwindcss.com),
+with a [React](https://react.dev) island for the camera itself and a small
+Cloudflare Worker that talks to the AI. It follows the same structure and visual
+brand as the other client sites (`client-happypaul55-com`, `borings-baddies-bastards`).
 
-### Thermal Printer Support
-Can connect via Bluetooth, Serial or USB and print the poems isntantly - it's like a Polaroid, but with words!
+The site is **Poem Camera** (`poem-camera.happypaul55.com`); the full name is set
+in `src/content/site/settings.json`.
 
-### Native Printer Support
-Print to PDF or actual printers as it has built in printer friendly styles - no wasted ink!
+## Routes
 
-### File Upload Support
-Maybe you don't want to give permissions to the website, and that's fine. Instead you can use the File Upload feature and it will make a poem from that picture as-if you took it right here right now from the web app.
+| Route      | What it is                                                              |
+| ---------- | ----------------------------------------------------------------------- |
+| `/`        | Landing page: hero, features, how it works, call to open the camera     |
+| `/app`     | The camera itself (the only page with client-side JavaScript)           |
+| `/privacy` | Privacy notice (rendered from `src/content/legal/privacy.md`)           |
+| `/404`     | Not found — `noindex` and excluded from the sitemap                     |
+| `/api/poem` | POST · turns an image into a poem (server-side, see below)             |
 
-## Developers
+## Local development
 
-### Start the project
-Make sure you have a `.env.local` file with `XAI_API_KEY={YOUR API KEY}`, `MISTRAL_API_KEY={YOUR API KEY}` or both.
-First, run `pnpm dev` then go to [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+cp .env.example .env   # then fill in AI_ENDPOINT / AI_API_KEY (poem generation)
+bun install
+bun run dev      # dev server on http://localhost:4321
+bun run build    # production build into dist/
+bun run preview  # serve the built site locally
+bun run check    # type-check .astro and .ts/.tsx files (astro check)
+bun test         # unit tests for the prompt/parse logic and the API handler
+bun run icons    # regenerate public/icons from public/icons/brand-mark.svg
+```
 
-## Credits
-I came up with this idea whilst messing with a thermal printer, however after some research I did [find this project by carolynz](https://github.com/carolynz/poetry-camera-rpi) - please read, it's well documented. I wanted to make my own version but I'm not very good with low level software and wanted to keep the solution as non-techncal as possible from a hardware point of view. My design goals was to smash an old Android device and a thermal printer into one and go from there. The advantages been better camera quality (as even old Android devices tend to have great cameras), ease of development (which is subjective as I'm a web developer by day) and fewer moving parts (the Android device has WiFi, 4G - or better, cameras, screens and more all in one package).
+Requires Node.js 20+ and [Bun](https://bun.sh). Use `bun` (never `npm`) and `bunx`
+(never `npx`). The lockfile is `bun.lock`; do not add `package-lock.json`,
+`yarn.lock` or `pnpm-lock.yaml`. There is no linter; the gates are `bun run check`,
+`bun test` and `bun run build`.
+
+`astro dev` serves `/api/poem` itself, using the same handler the Worker runs in
+production, reading `.env`. Without `AI_ENDPOINT`/`AI_API_KEY` the camera still
+runs and simply shows an error when a poem is requested.
+
+## Poem generation
+
+The poem is produced **server-side** — the AI API key never reaches the browser.
+`src/lib/app/poem-client.ts` (browser) calls `POST /api/poem` with
+`{ form, style, image }`; the handler in `src/lib/poem-api.ts` validates the
+request and delegates to `src/lib/poem-source.ts`, returning `{ ai, title, body }`.
+
+`src/lib/poem-source.ts` exposes a single **`PoemGenerator`** interface with two
+implementations, chosen at runtime by `resolvePoemGenerator`:
+
+| Implementation | Used when | How |
+| --- | --- | --- |
+| **Cloudflare Workers AI** | the Worker has an `AI` binding (production) | `env.AI.run(model, { messages, image })` |
+| **OpenAI-compatible HTTP** | no binding, but `AI_ENDPOINT` + `AI_API_KEY` are set | `fetch` to a chat-completions endpoint |
+
+The binding wins when both are present, so production runs entirely inside
+Cloudflare on the Workers AI free tier. Local `astro dev` has no binding, so it
+always uses the HTTP implementation — the same handler, a different generator.
+
+The prompt keeps the original Poem Camera behaviour: a short poem about what is
+actually in the frame, with special handling for the `Tongue Twister` and `Debug`
+forms and for theme, novelty and named-poet styles.
+
+### Cloudflare Workers AI (recommended, free)
+
+The Worker binds Workers AI in `wrangler.jsonc`:
+
+```jsonc
+"ai": { "binding": "AI" }
+```
+
+Workers AI is included in the Workers Free plan with **10,000 Neurons/day free**,
+resetting at 00:00 UTC. No API key or account ID is needed. The default model,
+`@cf/meta/llama-4-scout-17b-16e-instruct`, is vision-capable and on the free tier
+(roughly 150–200 poems/day). Set `AI_MODEL` to
+`@cf/meta/llama-3.2-11b-vision-instruct` for a cheaper model (~400+ poems/day).
+Some frontier models (Kimi, GLM-5.2/5.3, DeepSeek V4) require the paid plan and
+return `403` on Free.
+
+### OpenAI-compatible HTTP (local dev / other providers)
+
+Configuration is entirely via environment variables:
+
+| Variable      | Required               | Notes                                                              |
+| ------------- | ---------------------- | ------------------------------------------------------------------ |
+| `AI_ENDPOINT` | for the HTTP implementation | Full URL of an OpenAI-compatible, vision-capable endpoint      |
+| `AI_API_KEY`  | for the HTTP implementation | Secret. `wrangler secret put AI_API_KEY` in production         |
+| `AI_MODEL`    | no                     | Binding default is `@cf/meta/llama-4-scout-17b-16e-instruct`; HTTP default is `gpt-4o-mini` |
+
+For local development put them in `.env` (git-ignored); for `wrangler dev` use
+`.dev.vars`. Production uses the binding and normally sets none of them. Do not
+add these to `settings.json` or any client code.
+
+### Images
+
+The original app converted WebP to JPEG on the server with `sharp`; that is not
+available on Cloudflare Workers, so every frame is normalised to a JPEG data URL
+**in the browser** instead (`src/lib/app/image.ts`). The long edge is capped at
+1600px, which keeps the payload small and strips EXIF location data.
+
+## Deployment
+
+The site is static assets plus a small Worker, deployed to **Cloudflare Workers**
+via Workers Builds:
+
+```text
+Build command:    bun run build
+Deploy command:   bunx wrangler deploy
+Output directory: dist
+```
+
+`wrangler.jsonc` uploads `dist/` as static assets (binding `ASSETS`) and routes
+`/api/*` to the Worker first (`run_worker_first`), leaving everything else
+asset-first with the pretty 404 page (`not_found_handling: "404-page"`).
+**Selective `run_worker_first` needs Wrangler ≥ 4.20.0.** The Worker lives at
+`worker/index.ts` and is bundled and deployed by `wrangler`; Astro still builds
+the frontend as a plain static site, so no Astro adapter is used.
+
+The production origin is `https://poem-camera.happypaul55.com`, set as `site` in
+`astro.config.mjs` and mirrored in `src/content/site/settings.json` (`url`) and
+`public/robots.txt`. If the domain changes, change all three and rebuild.
+
+Production uses the Workers AI binding, so no AI secret is required. If you
+prefer the OpenAI-compatible HTTP path instead, set the secret before the first
+deploy:
+
+```bash
+bunx wrangler secret put AI_API_KEY
+# and AI_ENDPOINT / AI_MODEL as vars or secrets
+```
+
+## Content and code layout
+
+| What                                                | Where                                |
+| --------------------------------------------------- | ------------------------------------ |
+| Site metadata, author, repo/licence                 | `src/content/site/settings.json`     |
+| Page copy and sections                              | `src/components/sections/*.astro`    |
+| Header / footer / metadata + JSON-LD                | `src/components/layout/*.astro`      |
+| Design tokens and component classes                 | `src/styles/global.css` (`@theme`)   |
+| Poem forms (single source of truth)                 | `src/lib/poem-forms.ts`              |
+| Poem styles / poets (single source of truth)        | `src/lib/poem-styles.ts`             |
+| Prompt, parse and the two generators                | `src/lib/poem-source.ts`             |
+| `/api/poem` handler                                 | `src/lib/poem-api.ts`                |
+| React island (app shell, camera, dialogs, settings) | `src/components/app/**`              |
+| Client hooks and printer driver                     | `src/lib/app/**`                     |
+| `/app` page shell that mounts the island            | `src/pages/app.astro`                |
+| Worker entry (Worker + static assets)               | `worker/index.ts`                    |
+| Privacy notice                                      | `src/content/legal/privacy.md`       |
+| Zod schemas for the two collections                 | `src/content.config.ts`              |
+| Icons, favicons, manifest                           | `public/icons/`                      |
+| Self-hosted fonts                                   | `public/fonts/`                      |
+
+`src/content/site/settings.json` is an **array** with `id: "main"` (required by
+Astro's `file()` loader); the site reads `getEntry("site", "main")`. Adding a field
+there without updating the schema in `src/content.config.ts` fails the build.
+
+## How the app is built
+
+The landing, privacy and 404 pages ship **no JavaScript**. Only `/app` does,
+because it is interactive, and it is a React island
+([`@astrojs/react`](https://docs.astro.build/en/guides/integrations-guide-react/),
+`client:load`) that Astro server-renders into the page and then hydrates.
+
+- **`src/lib/app/use-camera.ts`** — camera access with no third-party component:
+  permission, device enumeration, camera switching, and canvas frame capture.
+- **`src/lib/app/use-poem.ts`** — turns a captured frame into a poem via
+  `/api/poem`, aborting any in-flight request when the frame changes.
+- **`src/lib/app/use-printer.ts`** and **`src/lib/app/web-bluetooth-receipt-printer/`**
+  — the Bluetooth thermal printer driver (ported from the original app).
+- **`src/components/app/**`** — the views. Dialogs are native `<dialog>` elements;
+  selects are native `<select>`/`<optgroup>`. There is no UI component library.
+
+App preferences are persisted in `localStorage` under the original keys
+(`appSettings`, `poemSettings`, `printerSettings`), so returning users keep their
+settings.
+
+Only the **Bluetooth** thermal driver is wired up, exactly as before; the USB and
+serial options are recorded but not connected.
+
+## Privacy
+
+The camera stream stays on the device. A single frame is sent to this site's own
+`/api/poem` endpoint — and on to the configured AI provider — only when you ask
+for a poem, and it is not stored. There are no accounts, cookies or analytics.
+`src/content/legal/privacy.md` explains this and must be updated before anything
+else that collects personal data is added.
+
+## Icons and fonts
+
+- Icons are generated from `public/icons/brand-mark.svg` (an ink camera on an
+  electric-yellow tile) with `bun run icons` (the `favicons` package via
+  `scripts/generate-icons.mjs`). Replace the SVG and re-run the script to rebrand.
+  The social/Open Graph image is `public/icons/apple-touch-icon-1024x1024.png`.
+- Fonts are self-hosted latin-subset woff2 files in `public/fonts/`: Space Grotesk
+  (variable, display + body) and Space Mono (400/700, labels). Space Grotesk is
+  preloaded in `src/layouts/BaseLayout.astro`. To swap typefaces, update the
+  `@font-face` rules, the preload link and the `--font-display` / `--font-body` /
+  `--font-mono` tokens in `src/styles/global.css`. `scripts/fetch-fonts.mjs` is a
+  one-off Google Fonts helper, not part of the build.
+
+## SEO, headers and caching
+
+- Unique `<title>`, meta description and canonical URL per indexable page; Open
+  Graph and Twitter cards; a generated icon set and web manifest.
+- JSON-LD `@graph` of `WebApplication` (the camera), `Website` and the author
+  `Person` (linking to `happypaul55.com`), plus a `BreadcrumbList` on sub-pages.
+- `sitemap-index.xml` (via `@astrojs/sitemap`) and `robots.txt`; the 404 is
+  `noindex` and excluded from the sitemap.
+- `public/_headers` sets security headers (CSP, HSTS, `nosniff`, frame denial) and
+  long-lived caching. Note `Permissions-Policy: camera=(self)` — the camera is
+  needed, so `camera=()` would silently break it. The CSP allows `img-src data:`
+  for the captured frame and `connect-src 'self'` because the AI call happens
+  server-side.
+- `public/_redirects` is present and empty (no legacy URLs yet).
+
+## Licence
+
+Released under the **GNU Affero General Public License v3.0** — see `LICENSE`.
+The licence is linked from the site footer and recorded in `settings.json`
+(`license`, `licenseUrl`).

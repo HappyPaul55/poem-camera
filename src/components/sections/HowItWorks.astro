@@ -1,0 +1,60 @@
+---
+import Container from "../ui/Container.astro";
+
+const steps = [
+  {
+    title: "Grant permissions",
+    body: "Say yes to the camera (or upload a picture instead if you'd rather not).",
+  },
+  {
+    title: "Take a photo",
+    body: "Point the camera at the world and press the shutter.",
+  },
+  {
+    title: "Check it",
+    body: "Look at the frame and decide whether it's the one you want made into a poem.",
+  },
+  {
+    title: "Make a poem",
+    body: "An AI writes a short poem about what is actually in the picture.",
+  },
+  {
+    title: "Enjoy it",
+    body: "Print it to a thermal receipt printer or your own printer — or read it on screen.",
+  },
+];
+---
+
+<section
+  id="how-it-works"
+  class="scroll-mt-24 border-b border-line bg-cream py-[clamp(3.5rem,9vw,7rem)]"
+>
+  <Container>
+    <p class="comment">
+      <span class="slash" aria-hidden="true">//</span> 02 · how it works
+    </p>
+    <h2
+      class="mt-4 max-w-[46rem] font-display text-[clamp(2rem,5vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em]"
+    >
+      Five steps, then you're holding a poem.
+    </h2>
+
+    <ol class="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        steps.map((step, index) => (
+          <li class="border-t border-line-strong pt-5">
+            <span class="font-mono text-[0.72rem] font-bold tracking-[0.18em] text-yellow-deep">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <h3 class="mt-2 font-display text-[1.25rem] font-bold tracking-[-0.01em]">
+              {step.title}
+            </h3>
+            <p class="mt-2 text-[0.96rem] leading-[1.6] text-ink-soft">
+              {step.body}
+            </p>
+          </li>
+        ))
+      }
+    </ol>
+  </Container>
+</section>

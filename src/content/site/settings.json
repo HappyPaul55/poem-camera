@@ -1,0 +1,17 @@
+[
+  {
+    "id": "main",
+    "name": "Poem Camera",
+    "shortName": "PoemCam",
+    "tagline": "Instant poems of what it sees",
+    "description": "Poem Camera is a camera that doesn't take photos — it takes poems. Point it at the world and an AI writes a short poem about what's in front of you, ready to print to a thermal receipt printer or your own printer.",
+    "url": "https://poem-camera.happypaul55.com",
+    "author": "HappyPaul55",
+    "authorUrl": "https://happypaul55.com",
+    "github": "https://github.com/HappyPaul55",
+    "linkedin": "https://www.linkedin.com/in/happypaul55/",
+    "repo": "https://github.com/HappyPaul55/poem-camera",
+    "license": "AGPL-3.0",
+    "licenseUrl": "https://www.gnu.org/licenses/agpl-3.0.html"
+  }
+]

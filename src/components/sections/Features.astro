@@ -1,0 +1,75 @@
+---
+import Container from "../ui/Container.astro";
+
+const features = [
+  {
+    title: "Multiple cameras",
+    body: "Like your native camera app, toggle through every connected camera and capture with whichever one is pointing at the right thing.",
+  },
+  {
+    title: "Thermal printer",
+    body: "Connect a receipt printer over Bluetooth and the poem prints the moment it is written — like a Polaroid, but with words.",
+  },
+  {
+    title: "Native printing",
+    body: "Print to PDF or any printer you already own. Built-in printer-friendly styles keep it clean and stop you wasting ink.",
+  },
+  {
+    title: "Upload a file",
+    body: "Don't want to grant camera access — or have no camera at all? Upload a picture instead and it's treated exactly like a frame you just shot.",
+  },
+  {
+    title: "Written by AI",
+    body: "An AI looks at what is actually in the frame and writes about it, so no two poems are the same. The API key never reaches your browser.",
+  },
+  {
+    title: "Forms & styles",
+    body: "Haiku, limerick, sonnet, detective, debug or tongue twister — in 60+ themes, novelty voices and the styles of the great poets.",
+  },
+];
+---
+
+<section
+  id="features"
+  class="grid-paper scroll-mt-24 border-b border-line py-[clamp(3.5rem,9vw,7rem)]"
+>
+  <Container>
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-16">
+      <div>
+        <p class="comment">
+          <span class="slash" aria-hidden="true">//</span> 01 · what it does
+        </p>
+        <h2
+          class="mt-4 font-display text-[clamp(1.9rem,3.6vw,2.7rem)] leading-[1.05] font-bold tracking-[-0.02em] text-balance"
+        >
+          Everything a camera has, except the photo.
+        </h2>
+      </div>
+      <p
+        class="max-w-[42rem] self-end text-[clamp(0.98rem,1.4vw,1.1rem)] leading-[1.65] text-ink-soft"
+      >
+        It is the whole trick of a Polaroid, rebuilt in the browser: no app to
+        install, no account, no printing service. Take the shot, get the poem,
+        hold it in your hand.
+      </p>
+    </div>
+
+    <ul class="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {
+        features.map((feature, index) => (
+          <li class="card">
+            <span class="font-mono text-[0.72rem] font-bold text-muted">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <h3 class="mt-4 font-display text-[1.25rem] leading-tight font-bold tracking-[-0.01em]">
+              {feature.title}
+            </h3>
+            <p class="mt-2 text-[0.94rem] leading-[1.6] text-ink-soft">
+              {feature.body}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </Container>
+</section>

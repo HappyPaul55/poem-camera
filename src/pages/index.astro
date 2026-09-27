@@ -1,0 +1,23 @@
+---
+import { getEntry } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/sections/Hero.astro";
+import Features from "../components/sections/Features.astro";
+import HowItWorks from "../components/sections/HowItWorks.astro";
+import Cta from "../components/sections/Cta.astro";
+
+const site = (await getEntry("site", "main"))!.data;
+---
+
+<BaseLayout
+  title={`${site.name} — ${site.tagline}`}
+  description={site.description}
+  path="/"
+>
+  <main id="main">
+    <Hero settings={site} />
+    <Features />
+    <HowItWorks />
+    <Cta />
+  </main>
+</BaseLayout>

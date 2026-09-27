@@ -1,0 +1,14 @@
+{
+  "name": "poem-camera",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-26",
+  "ai": {
+    "binding": "AI"
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  }
+}

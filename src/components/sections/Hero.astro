@@ -1,0 +1,67 @@
+---
+import type { SiteSettings } from "../../lib/site";
+import Container from "../ui/Container.astro";
+import Button from "../ui/Button.astro";
+
+interface Props {
+  settings: SiteSettings;
+}
+
+const { settings } = Astro.props;
+
+const stats = [
+  { value: "7", label: "poem forms" },
+  { value: "60+", label: "styles & voices" },
+  { value: "Free", label: "no accounts, no ads" },
+];
+---
+
+<section
+  class="on-ink grid-ink relative isolate overflow-hidden border-b border-line-ink bg-ink pt-[clamp(6.5rem,14vw,9.5rem)] pb-[clamp(3rem,7vw,5rem)]"
+>
+  <Container>
+    <div class="max-w-[64rem]">
+      <p class="comment">
+        <span class="slash" aria-hidden="true">//</span> instant poems · made for
+        thermal printers
+      </p>
+
+      <h1
+        class="mt-5 font-display text-[clamp(2.5rem,7.2vw,5.2rem)] leading-[0.98] font-bold tracking-[-0.035em] text-balance text-cream"
+      >
+        A camera that doesn't take photos — it takes{" "}
+        <span class="mark">poems</span>.
+      </h1>
+
+      <p
+        class="mt-6 max-w-[46rem] text-[clamp(1rem,1.5vw,1.18rem)] leading-[1.6] text-[rgba(250,250,244,0.72)]"
+      >
+        {settings.description}
+      </p>
+
+      <div class="no-print mt-8 flex flex-wrap items-center gap-3.5">
+        <Button href="/app" variant="primary">
+          Open the camera <span aria-hidden="true">→</span>
+        </Button>
+        <Button href="/#how-it-works" variant="outlineInk">How it works</Button>
+      </div>
+
+      <dl
+        class="mt-[clamp(2.5rem,6vw,4rem)] grid grid-cols-1 gap-px overflow-hidden rounded-[6px] border border-line-ink bg-[rgba(250,250,244,0.08)] sm:grid-cols-3"
+      >
+        {
+          stats.map((item) => (
+            <div class="bg-ink px-5 py-5">
+              <dt class="font-mono text-[0.68rem] font-bold tracking-[0.12em] text-[rgba(250,250,244,0.52)] uppercase">
+                {item.label}
+              </dt>
+              <dd class="mt-2 font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-none font-bold text-yellow">
+                {item.value}
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+  </Container>
+</section>
