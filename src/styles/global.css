@@ -963,6 +963,11 @@
     text-transform: none;
     letter-spacing: normal;
   }
+  /* The masthead already shows the domain, so don't repeat it after the link.
+     Specificity must beat `a[href^="http"]::after` above. */
+  .print-masthead a[href]::after {
+    content: none;
+  }
   h1,
   h2,
   h3 {

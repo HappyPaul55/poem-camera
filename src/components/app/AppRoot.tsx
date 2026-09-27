@@ -22,7 +22,7 @@ import PrintPoem from "./PrintPoem";
  * Owns the boot state, the printer connection and the poem pipeline, and hands
  * the pieces down to the (mostly dumb) views.
  */
-export default function AppRoot() {
+export default function AppRoot({ siteUrl }: { siteUrl: string }) {
   const [isBooted, setIsBooted] = useState(false);
   const [settings] = useAppSettings();
 
@@ -97,7 +97,7 @@ export default function AppRoot() {
         <PoemDialog poem={poem} error={error} onClose={poemClose} />
       )}
 
-      {poem && <PrintPoem poem={poem} />}
+      {poem && <PrintPoem poem={poem} siteUrl={siteUrl} />}
     </PrinterConnectionContext.Provider>
   );
 }

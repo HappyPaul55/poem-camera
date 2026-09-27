@@ -155,7 +155,7 @@ const site = siteEntry.data;
     <a class="skip-link no-print" href="#main">Skip to content</a>
 
     <p class="print-only print-masthead">
-      {site.name} · {site.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+      <a href={site.url}>{site.name}</a> · {site.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
     </p>
 
     {chrome && <Header settings={site} />}

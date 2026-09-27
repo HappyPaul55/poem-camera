@@ -182,6 +182,10 @@ it that way. `/app` also renders without the site header/footer
 - Print mode: while a poem is open the app sets `body[data-print="poem"]`, and the
   print styles hide everything except `.print-poem`. Do not remove that attribute
   or the poem will print alongside the page chrome.
+- The printed poem's byline is a real link to the site (`siteUrl` is threaded
+  from `app.astro` → `AppRoot` → `PrintPoem`) so PDF exports stay clickable. The
+  global print rule appends `(href)` to http links; it is suppressed for the
+  masthead, which already shows the domain.
 - TypeScript is on 6.x: `astro check` refuses TypeScript 7 (`@astrojs/check` peer
   range is `^5.0.0 || ^6.0.0`). Do not bump to 7.
 - The pretty 404 depends on `wrangler.jsonc` setting
