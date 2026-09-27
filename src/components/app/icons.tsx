@@ -58,6 +58,14 @@ export function UploadIcon(props: IconProps) {
   );
 }
 
+export function HomeIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+    </Base>
+  );
+}
+
 export function CloseIcon(props: IconProps) {
   return (
     <Base {...props}>

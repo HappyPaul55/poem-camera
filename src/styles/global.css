@@ -425,6 +425,9 @@
 
   /* Immersive app: no site header/footer (BaseLayout `chrome={false}`), so the
      camera fills the viewport. Respect the notch/status bar via safe areas. */
+  body.no-chrome {
+    overflow: hidden;
+  }
   body.no-chrome .app-page {
     padding-top: 0;
   }
@@ -651,6 +654,8 @@
   }
   .app-dialog::backdrop {
     background: rgba(12, 13, 10, 0.66);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
   }
   .app-dialog__body {
     max-height: min(88svh, 48rem);
@@ -690,6 +695,8 @@
   }
   .app-sheet::backdrop {
     background: rgba(12, 13, 10, 0.66);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
   }
   .app-sheet__body {
     display: flex;

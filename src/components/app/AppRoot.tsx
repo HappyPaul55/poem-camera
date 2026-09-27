@@ -15,6 +15,7 @@ import SettingsSheet from "./SettingsSheet";
 import ConfirmDialog from "./ConfirmDialog";
 import PoemDialog from "./PoemDialog";
 import PrintPoem from "./PrintPoem";
+import { HomeIcon } from "./icons";
 
 /**
  * React island root for /app.
@@ -75,6 +76,14 @@ export default function AppRoot({ siteUrl }: { siteUrl: string }) {
           <>
             <Camera onPhoto={handlePhoto} />
             <div className="app-controls">
+              <a
+                className="icon-btn"
+                href="/"
+                aria-label="Go to the homepage"
+                title="Home"
+              >
+                <HomeIcon />
+              </a>
               <FileUploadButton onPhoto={handlePhoto} />
               <PrinterButton />
               <SettingsSheet />

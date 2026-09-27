@@ -145,8 +145,9 @@ it that way. `/app` also renders without the site header/footer
   intentional spaces explicitly as `{" "}` at the end of the text line.
 - `/app` renders without the site header/footer (`chrome={false}` on
   `BaseLayout`, which adds `no-chrome` to `<body>`). The app CSS uses that to
-  fill the viewport (`100svh`) and add safe-area insets. Keep marketing pages
-  chrome-on.
+  fill the viewport (`100svh`), add safe-area insets, and lock page scroll
+  (`overflow: hidden`) so fractional viewports do not show a scrollbar. The intro
+  and dialogs scroll internally. Keep marketing pages chrome-on.
 - **`Permissions-Policy` must be `camera=(self)`.** Copying B3's `camera=()` would
   silently break `getUserMedia` in production while still working in dev.
 - **CSP** allows `img-src 'self' data:` for the captured frame and
