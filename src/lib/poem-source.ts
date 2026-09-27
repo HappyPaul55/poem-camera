@@ -206,9 +206,11 @@ export function createEndpointGenerator(config: PoemSourceEnv): PoemGenerator {
 }
 
 /**
- * The Cloudflare Workers AI implementation. The binding takes the frame as a
- * top-level `image` field (a base64 data URL) and answers with `{ response }`,
- * rather than the OpenAI-compatible `choices[0].message.content` shape.
+ * The Cloudflare Workers AI implementation. Chat vision models take the frame
+ * as an OpenAI-style `image_url` content part (a base64 data URL) and answer
+ * with `{ response }`. The top-level `image` field only works for a few older
+ * models (e.g. Llama 3.2 Vision) and is silently ignored by models like
+ * Llama 4 Scout, so the content-part form is used instead.
  */
 export function createWorkersAiGenerator(
   ai: WorkersAiBinding,
@@ -223,10 +225,15 @@ export function createWorkersAiGenerator(
             { role: "system", content: buildPrompt(form, style) },
             {
               role: "user",
-              content: "Write the poem for the attached photo.",
+              content: [
+                {
+                  type: "text",
+                  text: "Write the poem for the attached photo.",
+                },
+                { type: "image_url", image_url: { url: image } },
+              ],
             },
           ],
-          image,
           max_tokens: MAX_RESPONSE_TOKENS,
         });
       } catch {

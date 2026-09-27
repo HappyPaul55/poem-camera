@@ -149,11 +149,14 @@ describe("createWorkersAiGenerator", () => {
       body: "the body",
     });
     expect(captured.model).toBe("@cf/test/model");
-    expect(captured.inputs.image).toBe(image);
     expect(captured.inputs.messages[0]).toEqual({
       role: "system",
       content: buildPrompt("Haiku", "Humorous"),
     });
+    expect(captured.inputs.messages[1].content).toEqual([
+      { type: "text", text: "Write the poem for the attached photo." },
+      { type: "image_url", image_url: { url: image } },
+    ]);
   });
 
   test("defaults to the Workers AI vision model", async () => {

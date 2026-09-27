@@ -56,7 +56,7 @@ implementations, chosen at runtime by `resolvePoemGenerator`:
 
 | Implementation | Used when | How |
 | --- | --- | --- |
-| **Cloudflare Workers AI** | the Worker has an `AI` binding (production) | `env.AI.run(model, { messages, image })` |
+| **Cloudflare Workers AI** | the Worker has an `AI` binding (production) | `env.AI.run(model, { messages })` with an `image_url` content part |
 | **OpenAI-compatible HTTP** | no binding, but `AI_ENDPOINT` + `AI_API_KEY` are set | `fetch` to a chat-completions endpoint |
 
 The binding wins when both are present, so production runs entirely inside

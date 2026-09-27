@@ -87,8 +87,9 @@ There are two generators behind the one interface, chosen at runtime by
 
 1. **Workers AI binding** (`env.AI`) — used whenever the Worker has the `AI`
    binding (`ai.binding: "AI"` in `wrangler.jsonc`). Calls
-   `env.AI.run(model, { messages, image, max_tokens })` and reads the native
-   `{ response }`. This is the production path and needs no secret.
+   `env.AI.run(model, { messages, max_tokens })`, passing the frame as an
+   OpenAI-style `image_url` content part, and reads the native `{ response }`.
+   This is the production path and needs no secret.
 2. **OpenAI-compatible HTTP** (`generatePoem`) — used when there is no binding
    but `AI_ENDPOINT` + `AI_API_KEY` are set. This is the `astro dev` path (no
    binding exists there) and the escape hatch to another provider.
@@ -151,6 +152,11 @@ it that way.
   `Record<string, unknown>` in `resolvePoemGenerator`. The Workers AI binding is
   typed the same way (`AI?` on `Env`, `WorkersAiBinding` in `poem-source.ts`) —
   do not import `@cloudflare/workers-types` for it.
+- **Workers AI chat vision models need the frame as an `image_url` content part**
+  (`{ type: "text" }, { type: "image_url", image_url: { url } }`), not the
+  top-level `image` field. `image` is silently ignored by models like Llama 4
+  Scout — the request succeeds but the model reports no photo. The top-level
+  field only works for older models such as Llama 3.2 Vision.
 - `@point-of-sale/receipt-printer-encoder` ships no types; they live in
   `src/types/receipt-printer-encoder.d.ts`. Web Bluetooth types come from
   `@types/web-bluetooth`, referenced from `src/types/web-bluetooth.d.ts`.
