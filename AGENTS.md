@@ -209,7 +209,7 @@ it that way. `/app` also renders without the site header/footer
 
 - Deployed as a **Cloudflare Worker with static assets** via Workers Builds
   (`bun run build` → `bunx wrangler deploy`), configured by `wrangler.jsonc`
-  (`name: poem-camera`, `main: worker/index.ts`, `assets.directory: ./dist`,
+  (`name: client-poem-camera-happypaul55-co-uk`, `main: worker/index.ts`, `assets.directory: ./dist`,
   `assets.binding: ASSETS`, `run_worker_first: ["/api/*"]`).
 - Production uses the Workers AI `AI` binding (`wrangler.jsonc`), so no AI
   secret is needed. Only set `AI_API_KEY` (secret) plus `AI_ENDPOINT` /
