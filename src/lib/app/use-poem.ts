@@ -1,16 +1,26 @@
 import { useEffect, useState } from "react";
 import type { Poem } from "./poem-types";
-import { fetchPoem } from "./poem-client";
+import { streamPoem } from "./poem-client";
 import usePoemSettings from "./use-poem-settings";
 
+/** The poem as it is being written, before the model has finished. */
+export interface PoemDraft {
+  title?: string;
+  lines: string[];
+}
+
+const EMPTY_DRAFT: PoemDraft = { lines: [] };
+
 /**
- * Turns a captured frame into a poem. Re-runs whenever the frame or the chosen
- * form/style changes, aborting any in-flight request.
+ * Turns a captured frame into a poem, streaming it back line by line. Re-runs
+ * whenever the frame or the chosen form/style changes, aborting any in-flight
+ * request.
  */
 export default function usePoem() {
   const [poemSettings] = usePoemSettings();
   const [frame, setFrame] = useState<string | undefined>(undefined);
   const [poem, setPoem] = useState<Poem | undefined>(undefined);
+  const [draft, setDraft] = useState<PoemDraft>(EMPTY_DRAFT);
   const [error, setError] = useState<Error | undefined>(undefined);
   const [busy, setBusy] = useState(false);
 
@@ -21,14 +31,21 @@ export default function usePoem() {
 
     const controller = new AbortController();
     setPoem(undefined);
+    setDraft(EMPTY_DRAFT);
     setError(undefined);
     setBusy(true);
 
-    fetchPoem({
+    streamPoem({
       form: poemSettings.form,
       style: poemSettings.style,
       image: frame,
       signal: controller.signal,
+      onTitle: (title) => setDraft((current) => ({ ...current, title })),
+      onLine: (text) =>
+        setDraft((current) => ({
+          ...current,
+          lines: [...current.lines, text],
+        })),
     })
       .then((result) => {
         if (!controller.signal.aborted) setPoem(result);
@@ -47,9 +64,10 @@ export default function usePoem() {
   useEffect(() => {
     if (frame === undefined && poem !== undefined) {
       setPoem(undefined);
+      setDraft(EMPTY_DRAFT);
       setError(undefined);
     }
   }, [frame, poem]);
 
-  return { error, poem, setFrame, frame, busy };
+  return { error, poem, draft, setFrame, frame, busy };
 }

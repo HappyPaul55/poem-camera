@@ -56,7 +56,21 @@ function devPoemApi() {
 
           res.statusCode = response.status;
           response.headers.forEach((value, key) => res.setHeader(key, value));
-          res.end(await response.text());
+
+          // Pipe the stream straight through so lines arrive as they are
+          // written rather than after the whole poem is buffered.
+          if (!response.body) {
+            res.end();
+            return;
+          }
+          try {
+            for await (const chunk of response.body) {
+              res.write(chunk);
+            }
+          } catch {
+            // Client disconnected mid-stream; nothing left to do.
+          }
+          res.end();
         } catch (error) {
           server.config.logger.error(
             `[dev-poem-api] ${error instanceof Error ? error.message : String(error)}`,

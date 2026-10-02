@@ -49,15 +49,25 @@ runs and simply shows an error when a poem is requested.
 The poem is produced **server-side** — the AI API key never reaches the browser.
 `src/lib/app/poem-client.ts` (browser) calls `POST /api/poem` with
 `{ form, style, image }`; the handler in `src/lib/poem-api.ts` validates the
-request and delegates to `src/lib/poem-source.ts`, returning `{ ai, title, body }`.
+request and delegates to `src/lib/poem-source.ts`. The reply is a stream of
+newline-delimited JSON — a `title` event, one `line` event per finished line,
+then a `done` event carrying the finished `{ ai, title, body }` — so the browser
+can show the title and each line as it is written instead of waiting for the
+whole poem. Partial words are never shown: the server buffers the model's tokens
+into whole lines first.
 
 `src/lib/poem-source.ts` exposes a single **`PoemGenerator`** interface with two
 implementations, chosen at runtime by `resolvePoemGenerator`:
 
 | Implementation | Used when | How |
 | --- | --- | --- |
-| **Cloudflare Workers AI** | the Worker has an `AI` binding (production) | `env.AI.run(model, { messages })` with an `image_url` content part |
-| **OpenAI-compatible HTTP** | no binding, but `AI_ENDPOINT` + `AI_API_KEY` are set | `fetch` to a chat-completions endpoint |
+| **Cloudflare Workers AI** | the Worker has an `AI` binding (production) | `env.AI.run(model, { messages, stream: true })` with an `image_url` content part |
+| **OpenAI-compatible HTTP** | no binding, but `AI_ENDPOINT` + `AI_API_KEY` are set | `fetch` to a chat-completions endpoint with `stream: true` |
+
+Both stream server-sent events, parsed by the same code. If a provider ignores
+`stream` and replies with one JSON body, that shape is handled too. Reasoning
+models (like Gemma 4) send their thinking in a separate `reasoning_content`
+field, which is ignored so only the poem reaches the screen.
 
 The binding wins when both are present, so production runs entirely inside
 Cloudflare on the Workers AI free tier. Local `astro dev` has no binding, so it
@@ -147,7 +157,7 @@ bunx wrangler secret put AI_API_KEY
 | Design tokens and component classes                 | `src/styles/global.css` (`@theme`)   |
 | Poem forms (single source of truth)                 | `src/lib/poem-forms.ts`              |
 | Poem styles / poets (single source of truth)        | `src/lib/poem-styles.ts`             |
-| Prompt, parse and the two generators                | `src/lib/poem-source.ts`             |
+| Prompt, streaming line parser and generators        | `src/lib/poem-source.ts`             |
 | `/api/poem` handler                                 | `src/lib/poem-api.ts`                |
 | React island (app shell, camera, dialogs, settings) | `src/components/app/**`              |
 | Client hooks and printer driver                     | `src/lib/app/**`                     |
@@ -171,8 +181,18 @@ because it is interactive, and it is a React island
 
 - **`src/lib/app/use-camera.ts`** — camera access with no third-party component:
   permission, device enumeration, camera switching, and canvas frame capture.
+- **`src/lib/poem-source.ts`** exposes a single **`PoemGenerator`** interface with
+  two implementations, chosen at runtime by `resolvePoemGenerator`: the Workers
+  AI binding (`env.AI`) and any OpenAI-compatible HTTP endpoint. `poem-api.ts`
+  picks the binding when the Worker has one and falls back to
+  `AI_ENDPOINT` + `AI_API_KEY` otherwise.
+- **`src/lib/app/poem-client.ts`** — the browser client for `/api/poem`. It reads
+  the newline-delimited stream, calls back as the title and each line complete,
+  and resolves with the finished poem; errors carry typed `PoemApiError` kinds
+  (`network` / `server` / `format`).
 - **`src/lib/app/use-poem.ts`** — turns a captured frame into a poem via
-  `/api/poem`, aborting any in-flight request when the frame changes.
+  `/api/poem`, streaming the title and lines into `draft` state and aborting any
+  in-flight request when the frame changes.
 - **`src/lib/app/use-printer.ts`** and **`src/lib/app/web-bluetooth-receipt-printer/`**
   — the Bluetooth thermal printer driver (ported from the original app).
 - **`src/components/app/**`** — the views. Dialogs are native `<dialog>` elements;

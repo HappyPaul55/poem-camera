@@ -2,12 +2,19 @@
  * The `/api/poem` HTTP handler, shared by the production Worker and the local
  * dev server so both behave identically. Kept separate from `poem-source.ts` so
  * the AI logic can be tested without constructing requests.
+ *
+ * The success response is a stream of newline-delimited JSON (`application/
+ * x-ndjson`): a `title` event, then one `line` event per completed line, then a
+ * `done` event carrying the finished poem. Validation failures are still plain
+ * JSON with an HTTP error status.
  */
 import {
   PoemSourceError,
   createEndpointGenerator,
   createWorkersAiGenerator,
+  streamPoem,
   type PoemGenerator,
+  type PoemStreamEvent,
   type WorkersAiBinding,
 } from "./poem-source";
 import { POEM_FORM_NAMES, type PoemFormsNames } from "./poem-forms";
@@ -16,6 +23,13 @@ import { POEM_STYLE_NAMES, type PoemStyleNames } from "./poem-styles";
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
+};
+
+const STREAM_HEADERS = {
+  "content-type": "application/x-ndjson; charset=utf-8",
+  "cache-control": "no-store",
+  // Ask any proxy (e.g. nginx in local setups) not to buffer the stream.
+  "x-accel-buffering": "no",
 };
 
 /**
@@ -65,6 +79,72 @@ function isStyle(value: unknown): value is PoemStyleNames {
   return typeof value === "string" && POEM_STYLE_NAMES.includes(value as PoemStyleNames);
 }
 
+/**
+ * Wrap the line events in a streaming `Response`.
+ *
+ * The first event is awaited up front so a failure before the model says
+ * anything (unconfigured, unreachable, empty reply) can still be reported as a
+ * normal HTTP error instead of an error inside an already-started stream.
+ */
+async function poemStreamResponse(
+  generator: PoemGenerator,
+  image: string,
+  form: PoemFormsNames,
+  style: PoemStyleNames,
+): Promise<Response> {
+  const events = streamPoem(generator, image, form, style);
+
+  let first: IteratorResult<PoemStreamEvent>;
+  try {
+    first = await events.next();
+  } catch (error) {
+    if (error instanceof PoemSourceError) {
+      return json({ error: error.message }, error.status);
+    }
+    return json({ error: "Something went wrong writing the poem." }, 502);
+  }
+
+  if (first.done) {
+    return json({ error: "The poem service came back empty." }, 422);
+  }
+
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: PoemStreamEvent) => {
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+        } catch {
+          // The client went away; there is nobody left to send to.
+        }
+      };
+
+      send(first.value);
+      try {
+        for await (const event of events) send(event);
+      } catch (error) {
+        const streamError =
+          error instanceof PoemSourceError
+            ? error
+            : new PoemSourceError("Something went wrong writing the poem.", 502);
+        send({
+          type: "error",
+          message: streamError.message,
+          status: streamError.status,
+        });
+      } finally {
+        try {
+          controller.close();
+        } catch {
+          // Already closed by a cancelled stream.
+        }
+      }
+    },
+  });
+
+  return new Response(body, { status: 200, headers: STREAM_HEADERS });
+}
+
 export async function handlePoemRequest(
   request: Request,
   generator: PoemGenerator | null,
@@ -106,12 +186,5 @@ export async function handlePoemRequest(
     return json({ error: "The poem service is not configured." }, 503);
   }
 
-  try {
-    return json(await generator.generate(image, form, style), 200);
-  } catch (error) {
-    if (error instanceof PoemSourceError) {
-      return json({ error: error.message }, error.status);
-    }
-    return json({ error: "Something went wrong writing the poem." }, 502);
-  }
+  return poemStreamResponse(generator, image, form, style);
 }

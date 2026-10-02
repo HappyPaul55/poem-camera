@@ -32,7 +32,7 @@ export default function AppRoot({ siteUrl }: { siteUrl: string }) {
   const [device, setDevice] = useState<ConnectedDevice | undefined>();
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const { poem, setFrame, frame, error } = usePoem();
+  const { poem, draft, busy, setFrame, frame, error } = usePoem();
 
   const handlePhoto = useCallback(
     (photo: string) => {
@@ -103,7 +103,13 @@ export default function AppRoot({ siteUrl }: { siteUrl: string }) {
       )}
 
       {frame !== undefined && (
-        <PoemDialog poem={poem} error={error} onClose={poemClose} />
+        <PoemDialog
+          poem={poem}
+          draft={draft}
+          busy={busy}
+          error={error}
+          onClose={poemClose}
+        />
       )}
 
       {poem && <PrintPoem poem={poem} siteUrl={siteUrl} />}

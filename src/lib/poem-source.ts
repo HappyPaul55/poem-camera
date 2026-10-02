@@ -9,6 +9,10 @@
  * implementations exist: a Cloudflare Workers AI binding (`env.AI`) and any
  * OpenAI-compatible HTTP endpoint. `poem-api.ts` picks the binding when the
  * Worker has one and falls back to the HTTP endpoint otherwise.
+ *
+ * Both implementations stream: they yield the model's reply as raw text deltas,
+ * and `streamPoem` turns those into whole lines. The client never sees partial
+ * words or tokens.
  */
 import poemStyles, { type PoemStyleNames } from "./poem-styles";
 import { type PoemFormsNames } from "./poem-forms";
@@ -26,11 +30,18 @@ export interface Poem {
  * factories below; nothing outside this file knows how inference happens.
  */
 export interface PoemGenerator {
-  generate(
+  /** The model id reported back to the client. */
+  readonly model: string;
+  /**
+   * Stream the model's reply as raw text deltas (roughly token by token).
+   * Callers must not show these verbatim — `PoemStreamParser` turns them into
+   * whole lines first.
+   */
+  stream(
     image: string,
     form: PoemFormsNames,
     style: PoemStyleNames,
-  ): Promise<Poem>;
+  ): AsyncIterable<string>;
 }
 
 /** Config for the OpenAI-compatible HTTP implementation. */
@@ -69,8 +80,12 @@ export class PoemSourceError extends Error {
  */
 const MAX_RESPONSE_TOKENS = 8192;
 
-/** How long to wait for the model before giving up. Vision calls can be slow. */
-const REQUEST_TIMEOUT_MS = 30_000;
+/**
+ * How long to wait for the HTTP implementation. Applied to the whole request
+ * (headers *and* body), so it has to be generous enough for a streamed poem
+ * plus any reasoning.
+ */
+const REQUEST_TIMEOUT_MS = 120_000;
 
 /** Default model for the HTTP (OpenAI-compatible) implementation. */
 const DEFAULT_MODEL = "gpt-4o-mini";
@@ -113,106 +128,306 @@ export function buildPrompt(
   return template;
 }
 
+/** Strip the markdown a title line might arrive wrapped in. */
+function cleanTitle(line: string): string {
+  return line
+    .trim()
+    .replace(/^#+\s*/, "")
+    .replace(/^\*+/, "")
+    .replace(/\*+$/, "")
+    .trim();
+}
+
+/** A single line the parser has finished and the UI can render. */
+export type PoemLineEvent =
+  | { type: "title"; title: string }
+  | { type: "line"; text: string };
+
+/** Everything the API can send over the wire. */
+export type PoemStreamEvent =
+  | PoemLineEvent
+  | { type: "done"; poem: Poem }
+  | { type: "error"; message: string; status: number };
+
+/**
+ * Turn a stream of raw model text into whole title/body lines.
+ *
+ * The model streams tokens, often several a word; this buffers them and only
+ * emits a line once its trailing newline has arrived (or once the stream ends).
+ * Blank lines are kept only *inside* the body, so the title is not preceded by
+ * an empty line and the poem does not trail off into whitespace.
+ */
+export class PoemStreamParser {
+  private buffer = "";
+  private title: string | undefined;
+  private bodyStarted = false;
+  private pendingBlanks = 0;
+  private readonly lines: string[] = [];
+
+  /** Feed a raw text delta; get back any lines it completed. */
+  push(chunk: string): PoemLineEvent[] {
+    if (chunk) this.buffer += chunk;
+
+    const events: PoemLineEvent[] = [];
+    let newline: number;
+    while ((newline = this.buffer.indexOf("\n")) !== -1) {
+      const line = this.buffer.slice(0, newline).replace(/\r$/, "");
+      this.buffer = this.buffer.slice(newline + 1);
+      this.consume(line, events);
+    }
+    return events;
+  }
+
+  /** Flush the final, unterminated line (if any). */
+  flush(): PoemLineEvent[] {
+    const events: PoemLineEvent[] = [];
+    if (this.buffer) {
+      this.consume(this.buffer.replace(/\r$/, ""), events);
+      this.buffer = "";
+    }
+    return events;
+  }
+
+  /** The parsed title (if any) and body so far. */
+  result(): { title: string | undefined; body: string } {
+    return { title: this.title, body: this.lines.join("\n") };
+  }
+
+  private consume(line: string, events: PoemLineEvent[]): void {
+    if (this.title === undefined) {
+      // The first non-blank line is always the title.
+      if (!line.trim()) return;
+      this.title = cleanTitle(line) || "Untitled";
+      events.push({ type: "title", title: this.title });
+      return;
+    }
+
+    if (!this.bodyStarted) {
+      // Ignore the empty line a model often leaves under the title.
+      if (!line.trim()) return;
+      this.bodyStarted = true;
+      this.lines.push(line);
+      events.push({ type: "line", text: line });
+      return;
+    }
+
+    if (!line.trim()) {
+      // Hold blanks back until we know more content follows, so trailing
+      // whitespace at the end of the poem is dropped.
+      this.pendingBlanks += 1;
+      return;
+    }
+
+    while (this.pendingBlanks > 0) {
+      this.pendingBlanks -= 1;
+      this.lines.push("");
+      events.push({ type: "line", text: "" });
+    }
+    this.lines.push(line);
+    events.push({ type: "line", text: line });
+  }
+}
+
 /**
  * Turn a model reply into a title and body. The first line is the title (with
  * any stray markdown heading/bold markers stripped); everything else is the
  * body.
  */
 export function parsePoem(text: string): { title: string; body: string } {
-  const parts = text.trim().split("\n");
-  const title = (parts.shift() ?? "")
-    .trim()
-    .replace(/^##+/, "")
-    .replace(/^\*+/, "")
-    .replace(/\*+$/, "")
-    .trim();
-  const body = parts.join("\n").trim();
+  const parser = new PoemStreamParser();
+  parser.push(text);
+  parser.flush();
+  const { title, body } = parser.result();
 
-  if (!title && !body) {
+  if (title === undefined && !body) {
     throw new PoemSourceError("The poem service came back empty.", 422);
   }
 
   return { title: title || "Untitled", body };
 }
 
-export async function generatePoem(
+/**
+ * Pull the text out of a single streamed payload. Workers AI and
+ * OpenAI-compatible endpoints both send OpenAI-style chunks
+ * (`choices[0].delta.content`), some older models use a top-level `response`,
+ * and reasoning models add a `reasoning_content` we must ignore.
+ */
+function streamDelta(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "";
+
+  const data = payload as {
+    response?: unknown;
+    choices?: {
+      delta?: { content?: unknown };
+      message?: { content?: unknown };
+    }[];
+  };
+
+  const choice = data.choices?.[0];
+  const content = choice?.delta?.content ?? choice?.message?.content;
+  if (typeof content === "string" && content) return content;
+
+  if (typeof data.response === "string") return data.response;
+  return "";
+}
+
+/** Read an OpenAI-compatible SSE stream, yielding only the answer text. */
+async function* sseTextDeltas(
+  stream: ReadableStream<Uint8Array>,
+): AsyncGenerator<string> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const readLine = (line: string): string => {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data:")) return "";
+    const payload = trimmed.slice(5).trim();
+    if (!payload || payload === "[DONE]") return "";
+    try {
+      return streamDelta(JSON.parse(payload));
+    } catch {
+      return "";
+    }
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let newline: number;
+      while ((newline = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, newline).replace(/\r$/, "");
+        buffer = buffer.slice(newline + 1);
+        const delta = readLine(line);
+        if (delta) yield delta;
+      }
+    }
+
+    buffer += decoder.decode();
+    for (const line of buffer.split("\n")) {
+      const delta = readLine(line);
+      if (delta) yield delta;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function isReadableStream(value: unknown): value is ReadableStream<Uint8Array> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { getReader?: unknown }).getReader === "function"
+  );
+}
+
+/**
+ * Turn a generator's raw text deltas into line events and a final poem. The
+ * `done` event carries the canonical poem (and the model id) so the client can
+ * hand it straight to the printer.
+ */
+export async function* streamPoem(
+  generator: PoemGenerator,
   image: string,
   form: PoemFormsNames,
   style: PoemStyleNames,
-  env: PoemSourceEnv,
-  fetchImpl: typeof fetch = fetch,
-): Promise<Poem> {
-  if (!env.endpoint || !env.apiKey) {
-    throw new PoemSourceError("The poem service is not configured.", 503);
+): AsyncGenerator<PoemStreamEvent> {
+  const parser = new PoemStreamParser();
+
+  for await (const delta of generator.stream(image, form, style)) {
+    yield* parser.push(delta);
   }
+  yield* parser.flush();
 
-  const model = env.model || DEFAULT_MODEL;
-
-  let response: Response;
-  try {
-    response = await fetchImpl(env.endpoint, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${env.apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: MAX_RESPONSE_TOKENS,
-        messages: [
-          { role: "system", content: buildPrompt(form, style) },
-          {
-            role: "user",
-            content: [{ type: "image_url", image_url: { url: image } }],
-          },
-        ],
-      }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
-  } catch {
-    throw new PoemSourceError("Could not reach the poem service.", 502);
-  }
-
-  if (!response.ok) {
-    throw new PoemSourceError(
-      `The poem service returned ${response.status}: ${await response.text()}.`,
-      502,
-    );
-  }
-
-  let content = "";
-  try {
-    const data = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    content = data.choices?.[0]?.message?.content ?? "";
-  } catch {
-    throw new PoemSourceError(
-      "The poem service returned an unreadable response.",
-      502,
-    );
-  }
-
-  if (!content.trim()) {
+  const { title, body } = parser.result();
+  if (title === undefined && !body) {
     throw new PoemSourceError("The poem service came back empty.", 422);
   }
 
-  const { title, body } = parsePoem(content);
-
-  return { ai: model, title, body };
+  yield {
+    type: "done",
+    poem: { ai: generator.model, title: title || "Untitled", body },
+  };
 }
 
 /** The OpenAI-compatible HTTP implementation. */
-export function createEndpointGenerator(config: PoemSourceEnv): PoemGenerator {
+export function createEndpointGenerator(
+  config: PoemSourceEnv,
+  fetchImpl: typeof fetch = fetch,
+): PoemGenerator {
+  const model = config.model || DEFAULT_MODEL;
+
   return {
-    generate: (image, form, style) => generatePoem(image, form, style, config),
+    model,
+    async *stream(image, form, style) {
+      if (!config.endpoint || !config.apiKey) {
+        throw new PoemSourceError("The poem service is not configured.", 503);
+      }
+
+      let response: Response;
+      try {
+        response = await fetchImpl(config.endpoint, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${config.apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: MAX_RESPONSE_TOKENS,
+            stream: true,
+            messages: [
+              { role: "system", content: buildPrompt(form, style) },
+              {
+                role: "user",
+                content: [{ type: "image_url", image_url: { url: image } }],
+              },
+            ],
+          }),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch {
+        throw new PoemSourceError("Could not reach the poem service.", 502);
+      }
+
+      if (!response.ok) {
+        throw new PoemSourceError(
+          `The poem service returned ${response.status}: ${await response.text()}.`,
+          502,
+        );
+      }
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (response.body && contentType.includes("text/event-stream")) {
+        yield* sseTextDeltas(response.body);
+        return;
+      }
+
+      // The provider ignored `stream` and sent one normal JSON body.
+      let content = "";
+      try {
+        const data = (await response.json()) as {
+          choices?: { message?: { content?: string } }[];
+        };
+        content = data.choices?.[0]?.message?.content ?? "";
+      } catch {
+        throw new PoemSourceError(
+          "The poem service returned an unreadable response.",
+          502,
+        );
+      }
+      if (content) yield content;
+    },
   };
 }
 
 /**
- * Pull the assistant text out of a Workers AI reply. The binding is
- * inconsistent: some models (e.g. Llama 4 Scout) return a top-level `response`
- * string, while others (e.g. Gemma 4) only return OpenAI-style
+ * Pull the assistant text out of a non-streamed Workers AI reply. The binding
+ * is inconsistent: some models (e.g. Llama 4 Scout) return a top-level
+ * `response` string, while others (e.g. Gemma 4) only return OpenAI-style
  * `choices[0].message.content`. Reasoning models also carry a separate
  * `reasoning_content` we must not include.
  */
@@ -234,17 +449,17 @@ function workersAiReply(result: unknown): string {
 
 /**
  * The Cloudflare Workers AI implementation. Chat vision models take the frame
- * as an OpenAI-style `image_url` content part (a base64 data URL) and answer
- * with `{ response }`. The top-level `image` field only works for a few older
- * models (e.g. Llama 3.2 Vision) and is silently ignored by models like
- * Llama 4 Scout, so the content-part form is used instead.
+ * as an OpenAI-style `image_url` content part (a base64 data URL). With
+ * `stream: true` the binding returns an SSE `ReadableStream`; a few models
+ * ignore the flag and answer in one piece, so that shape is handled too.
  */
 export function createWorkersAiGenerator(
   ai: WorkersAiBinding,
   model: string = DEFAULT_WORKERS_AI_MODEL,
 ): PoemGenerator {
   return {
-    async generate(image, form, style) {
+    model,
+    async *stream(image, form, style) {
       let result: unknown;
       try {
         result = await ai.run(model, {
@@ -262,20 +477,19 @@ export function createWorkersAiGenerator(
             },
           ],
           max_tokens: MAX_RESPONSE_TOKENS,
+          stream: true,
         });
       } catch {
         throw new PoemSourceError("Could not reach the poem service.", 502);
       }
 
-      const content = workersAiReply(result);
-
-      if (!content.trim()) {
-        throw new PoemSourceError("The poem service came back empty.", 422);
+      if (isReadableStream(result)) {
+        yield* sseTextDeltas(result);
+        return;
       }
 
-      const { title, body } = parsePoem(content);
-
-      return { ai: model, title, body };
+      const content = workersAiReply(result);
+      if (content) yield content;
     },
   };
 }

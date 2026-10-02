@@ -43,16 +43,18 @@ import `bun:test`; Bun runs and transpiles them natively (`bun test`).
 - `src/lib/poem-forms.ts` / `src/lib/poem-styles.ts` — the forms, themes, novelty
   voices and named poets. Single source of truth for both the settings UI and the
   API validation.
-- `src/lib/poem-source.ts` — the prompt (`buildPrompt`), the reply parser
-  (`parsePoem`) and the single `PoemGenerator` interface with two factory
-  implementations: `createWorkersAiGenerator` (the `env.AI` binding) and
-  `createEndpointGenerator` (OpenAI-compatible `fetch`). Runtime-free so the
-  Worker and the dev server share it.
+- `src/lib/poem-source.ts` — the prompt (`buildPrompt`), the line parser
+  (`PoemStreamParser`, which `parsePoem` shares) and the single `PoemGenerator`
+  interface with two factory implementations: `createWorkersAiGenerator` (the
+  `env.AI` binding) and `createEndpointGenerator` (OpenAI-compatible `fetch`).
+  Runtime-free so the Worker and the dev server share it.
 - `src/lib/poem-api.ts` — the `/api/poem` HTTP handler and
   `resolvePoemGenerator` (binding first, HTTP endpoint second, `null` otherwise).
-  Used by both `worker/index.ts` and the dev plugin in `astro.config.mjs`.
-- `src/lib/app/poem-client.ts` — the browser client for `/api/poem`; typed
-  `PoemApiError` kinds (`network` / `server` / `format`).
+  Streams newline-delimited JSON (`title`, `line`, `done`). Used by both
+  `worker/index.ts` and the dev plugin in `astro.config.mjs`.
+- `src/lib/app/poem-client.ts` — the browser client for `/api/poem`; reads the
+  stream, fires `onTitle` / `onLine` callbacks, and has typed `PoemApiError`
+  kinds (`network` / `server` / `format`).
 - `src/lib/app/use-camera.ts` — camera access without a third-party webcam
   component: permission, `enumerateDevices`, camera switching, canvas capture.
 - `src/lib/app/image.ts` — canvas JPEG normalisation (replaces the old server-side
@@ -79,20 +81,24 @@ import `bun:test`; Bun runs and transpiles them natively (`bun test`).
 
 Server-side only; the AI credential must never reach the browser. The client
 calls `POST /api/poem` with `{ form, style, image }`; the handler validates the
-form, style and image data URL and hands the request to a `PoemGenerator` that
-returns `{ ai, title, body }`.
+form, style and image data URL and hands the request to a `PoemGenerator`. The
+generator streams raw model text, `PoemStreamParser` buffers it into whole
+lines, and the handler returns newline-delimited JSON: a `title` event, one
+`line` event per finished line, then a `done` event with `{ ai, title, body }`.
+The browser renders the title and each line as it arrives (never per token or
+word) and uses the `done` poem for printing.
 
 There are two generators behind the one interface, chosen at runtime by
 `resolvePoemGenerator`:
 
 1. **Workers AI binding** (`env.AI`) — used whenever the Worker has the `AI`
    binding (`ai.binding: "AI"` in `wrangler.jsonc`). Calls
-   `env.AI.run(model, { messages, max_tokens })`, passing the frame as an
-   OpenAI-style `image_url` content part, and reads the native `{ response }`.
+   `env.AI.run(model, { messages, max_tokens, stream: true })`, passing the
+   frame as an OpenAI-style `image_url` content part, and reads the SSE stream.
    This is the production path and needs no secret.
-2. **OpenAI-compatible HTTP** (`generatePoem`) — used when there is no binding
-   but `AI_ENDPOINT` + `AI_API_KEY` are set. This is the `astro dev` path (no
-   binding exists there) and the escape hatch to another provider.
+2. **OpenAI-compatible HTTP** (`createEndpointGenerator`) — used when there is no
+   binding but `AI_ENDPOINT` + `AI_API_KEY` are set. This is the `astro dev` path
+   (no binding exists there) and the escape hatch to another provider.
 
 The binding wins when both are configured. `AI_MODEL` overrides the model for
 whichever implementation is active; the binding default is
@@ -166,13 +172,20 @@ it that way. `/app` also renders without the site header/footer
   top-level `image` field. `image` is silently ignored by models like Gemma 4 —
   the request succeeds but the model reports no photo. The top-level field only
   works for older models such as Llama 3.2 Vision.
-- Workers AI reply shapes differ: some models return a top-level `response`,
-  others (Gemma 4) only `choices[0].message.content`, and reasoning models add a
-  `reasoning_content` that must be ignored. `workersAiReply()` in
-  `poem-source.ts` normalises this — route any new Workers AI parsing through it.
+- Workers AI reply shapes differ: with `stream: true` the binding returns an SSE
+  stream of OpenAI-style chunks (`choices[0].delta.content`), while models that
+  ignore the flag reply with a top-level `response` or
+  `choices[0].message.content`. Reasoning models also add a `reasoning_content`
+  that must be ignored — during streaming as well as in the fallback.
+  `sseTextDeltas()` / `streamDelta()` handle the stream and `workersAiReply()`
+  the whole reply; route any new Workers AI parsing through them.
   Gemma 4 is a reasoning model, so `MAX_RESPONSE_TOKENS` must stay large enough
   for the thinking *and* the poem (it is 8192, sized for a ~5,000-character poem;
   it is only a cap, so unused tokens cost nothing).
+- **The spinner deliberately overrides the global reduced-motion rule**
+  (`.spinner` in the `prefers-reduced-motion` block) so it keeps turning, just
+  slower. Without that higher-specificity `!important` override it freezes into a
+  static circle on machines with "reduce motion" enabled, which reads as broken.
 - `@point-of-sale/receipt-printer-encoder` ships no types; they live in
   `src/types/receipt-printer-encoder.d.ts`. Web Bluetooth types come from
   `@types/web-bluetooth`, referenced from `src/types/web-bluetooth.d.ts`.

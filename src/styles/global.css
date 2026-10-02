@@ -818,6 +818,28 @@
     overflow-wrap: anywhere;
   }
 
+  /* Streaming poem: each line fades and slides up as it is written. */
+  .poem-reveal {
+    display: inline-block;
+    animation: poem-reveal-in 0.42s var(--ease-brand) both;
+  }
+  .poem-line {
+    display: block;
+  }
+  .poem-line--blank {
+    height: 1.7em;
+  }
+  @keyframes poem-reveal-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   /* Alerts and spinners */
   .alert {
     padding: 0.75rem 1rem;
@@ -836,6 +858,7 @@
     border-color: var(--color-line-strong);
   }
   .spinner {
+    display: inline-block;
     width: 16px;
     height: 16px;
     border: 2px solid var(--color-line-strong);
@@ -909,6 +932,13 @@
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  /* A spinner communicates progress through motion, so keep it turning — just
+     slower for anyone who asked for less movement. Without this it freezes into
+     a static circle that reads as broken. */
+  .spinner {
+    animation-duration: 1.4s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 
