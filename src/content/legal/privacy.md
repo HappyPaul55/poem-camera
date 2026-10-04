@@ -1,7 +1,7 @@
 ---
 title: Privacy Policy
 description: How Poem Camera handles the photo you take, the settings it stores on your device, and the poem it writes.
-updated: "2026-09-27"
+updated: "2026-10-04"
 ---
 
 Poem Camera is a free browser camera. It has no accounts, no newsletter and no advertising. This notice explains the very small amount of information it touches, and why.
@@ -15,7 +15,9 @@ Poem Camera is published by **HappyPaul55**, who is the data controller for anyt
 We do not ask for, store or share any personal information. In particular:
 
 - There is no sign-up, login or account of any kind.
-- We set no cookies and use no analytics, trackers or advertising pixels.
+- We set no cookies of our own and use no analytics, trackers or advertising
+  pixels. (A Cloudflare Turnstile check, described below, runs when you open the
+  camera.)
 - We keep no gallery, history or server-side storage of your photos or your poems.
 
 ## The camera
@@ -32,9 +34,19 @@ The AI provider processes the image in order to generate the poem and may see th
 
 If you would prefer not to make this request, simply do not take a photo — the rest of the page works without it.
 
+## Keeping the poem service free
+
+Each poem costs money to write, so the service could be abused by bots. When the
+camera opens, **Cloudflare Turnstile** checks that you are a person. Cloudflare
+sees your IP address and the standard technical details of the request in order
+to make that check. If you pass, your browser stores a signed token in
+`sessionStorage` that lasts for **30 minutes**, so taking several photos needs
+only one check; the check appears again after that, or when the tab is closed.
+We do not store the token result on our servers.
+
 ## Settings stored on your device
 
-Your preferences — fullscreen, previews, instant print, the chosen poem form and style, and your printer configuration — are saved in your browser's `localStorage` so they are there next time. That data never leaves your device and is removed when you clear your browser storage.
+Your preferences — fullscreen, previews, instant print, the chosen poem form and style, and your printer configuration — are saved in your browser's `localStorage` so they are there next time. The 30-minute human-check token is kept separately in `sessionStorage` and disappears when you close the tab. That data never leaves your device and is removed when you clear your browser storage.
 
 ## Printing
 
@@ -42,7 +54,7 @@ Printing to a photo printer uses your browser's own print dialog. Printing to a 
 
 ## Third parties
 
-- **Cloudflare** hosts the site and runs the poem-generation endpoint.
+- **Cloudflare** hosts the site, runs the poem-generation endpoint, and provides the Turnstile human check.
 - An **AI model provider** receives the single image you submit, in order to write the poem.
 
 Neither is used to build a profile of you, and we do not sell or share data with anyone else.

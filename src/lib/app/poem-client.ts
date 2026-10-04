@@ -11,8 +11,12 @@
 import type { Poem } from "./poem-types";
 import type { PoemFormsNames } from "../poem-forms";
 import type { PoemStyleNames } from "../poem-styles";
+import {
+  clearTurnstileSession,
+  turnstileHeaders,
+} from "../turnstile-client";
 
-export type PoemApiErrorKind = "network" | "server" | "format";
+export type PoemApiErrorKind = "network" | "server" | "format" | "turnstile";
 
 export class PoemApiError extends Error {
   readonly kind: PoemApiErrorKind;
@@ -106,6 +110,7 @@ export async function streamPoem({
       headers: {
         "content-type": "application/json",
         accept: "application/x-ndjson",
+        ...turnstileHeaders(),
       },
       body: JSON.stringify({ form, style, image }),
       signal,
@@ -118,6 +123,18 @@ export async function streamPoem({
       "network",
       "Could not reach the poem service. Check your connection and try again.",
     );
+  }
+
+  if (response.status === 401) {
+    clearTurnstileSession();
+    let message = "Please complete the human check to continue.";
+    try {
+      const data = (await response.json()) as { error?: unknown };
+      if (typeof data.error === "string") message = data.error;
+    } catch {
+      // Keep the generic message.
+    }
+    throw new PoemApiError("turnstile", message);
   }
 
   if (!response.ok) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Poem } from "./poem-types";
 import { streamPoem } from "./poem-client";
 import usePoemSettings from "./use-poem-settings";
@@ -23,6 +23,8 @@ export default function usePoem() {
   const [draft, setDraft] = useState<PoemDraft>(EMPTY_DRAFT);
   const [error, setError] = useState<Error | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  /** Bumped to re-run the request after a re-verification, without a new frame. */
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     if (frame === undefined) {
@@ -59,7 +61,7 @@ export default function usePoem() {
       });
 
     return () => controller.abort();
-  }, [poemSettings.form, poemSettings.style, frame]);
+  }, [poemSettings.form, poemSettings.style, frame, retryNonce]);
 
   useEffect(() => {
     if (frame === undefined && poem !== undefined) {
@@ -69,5 +71,7 @@ export default function usePoem() {
     }
   }, [frame, poem]);
 
-  return { error, poem, draft, setFrame, frame, busy };
+  const retry = useCallback(() => setRetryNonce((nonce) => nonce + 1), []);
+
+  return { error, poem, draft, setFrame, frame, busy, retry };
 }

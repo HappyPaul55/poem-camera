@@ -21,6 +21,7 @@ in `src/content/site/settings.json`.
 | `/privacy` | Privacy notice (rendered from `src/content/legal/privacy.md`)           |
 | `/404`     | Not found — `noindex` and excluded from the sitemap                     |
 | `/api/poem` | POST · turns an image into a poem (server-side, see below)             |
+| `/api/session` | GET/POST · Turnstile human check → 30-minute session (see below)    |
 
 ## Local development
 
@@ -40,9 +41,11 @@ Requires Node.js 20+ and [Bun](https://bun.sh). Use `bun` (never `npm`) and `bun
 `yarn.lock` or `pnpm-lock.yaml`. There is no linter; the gates are `bun run check`,
 `bun test` and `bun run build`.
 
-`astro dev` serves `/api/poem` itself, using the same handler the Worker runs in
-production, reading `.env`. Without `AI_ENDPOINT`/`AI_API_KEY` the camera still
-runs and simply shows an error when a poem is requested.
+`astro dev` serves `/api/poem` and `/api/session` itself, using the same handlers
+the Worker runs in production, reading `.env`. Without `AI_ENDPOINT`/`AI_API_KEY`
+the camera still runs and simply shows an error when a poem is requested. Without
+`TURNSTILE_SECRET`/`TURNSTILE_HOSTNAMES` the app refuses to start (the human check
+fails closed).
 
 ## Poem generation
 
@@ -116,6 +119,36 @@ available on Cloudflare Workers, so every frame is normalised to a JPEG data URL
 **in the browser** instead (`src/lib/app/image.ts`). The long edge is capped at
 1600px, which keeps the payload small and strips EXIF location data.
 
+## Human check (Cloudflare Turnstile)
+
+Because every photo calls the AI model, `/api/poem` is gated behind a **Cloudflare
+Turnstile** check. Turnstile tokens are single-use and expire in minutes, so the
+check is *not* repeated per photo. Instead:
+
+1. When `/app` opens, the React island asks the worker for a session
+   (`GET /api/session`) and, if there is none, renders the Turnstile widget in
+   place of the intro.
+2. On success the widget token is sent to `POST /api/session`, which runs
+   canonical **siteverify** (`success`, `action: "open"` and an allowed
+   `hostname`), then returns a signed session token valid for **30 minutes**.
+3. The browser keeps that token in `sessionStorage` and sends it as
+   `x-turnstile-session` on every `/api/poem` call. `/api/poem` returns
+   `401 { code: "turnstile_required" }` when the session is missing or has
+   expired, and the gate reappears (then the pending frame is retried).
+
+The session is an HMAC-SHA256 token over its own expiry, keyed by a derivation of
+`TURNSTILE_SECRET`; there is no session database. The browser **never** calls
+siteverify.
+
+| Variable                    | Required | Notes                                                                 |
+| --------------------------- | -------- | --------------------------------------------------------------------- |
+| `PUBLIC_TURNSTILE_SITEKEY`  | no       | Public widget site key; baked in at build time, literal fallback in code |
+| `TURNSTILE_HOSTNAMES`       | yes      | Comma-separated hostnames accepted from siteverify. Production sets this in `wrangler.jsonc`; local dev uses `localhost,127.0.0.1` |
+| `TURNSTILE_SECRET`          | yes      | Secret. `wrangler secret put TURNSTILE_SECRET` in production           |
+
+Production must never include `localhost` or `127.0.0.1` in `TURNSTILE_HOSTNAMES`.
+The widget itself must be registered for each hostname that serves it.
+
 ## Deployment
 
 The site is static assets plus a small Worker, deployed to **Cloudflare Workers**
@@ -140,11 +173,12 @@ The production origin is `https://poem-camera.happypaul55.com`, set as `site` in
 
 Production uses the Workers AI binding, so no AI secret is required. If you
 prefer the OpenAI-compatible HTTP path instead, set the secret before the first
-deploy:
+deploy. `TURNSTILE_SECRET` is always required for the human check:
 
 ```bash
+bunx wrangler secret put TURNSTILE_SECRET
 bunx wrangler secret put AI_API_KEY
-# and AI_ENDPOINT / AI_MODEL as vars or secrets
+# and AI_ENDPOINT / AI_MODEL as vars or secrets; TURNSTILE_HOSTNAMES is a var in wrangler.jsonc
 ```
 
 ## Content and code layout
@@ -159,6 +193,7 @@ bunx wrangler secret put AI_API_KEY
 | Poem styles / poets (single source of truth)        | `src/lib/poem-styles.ts`             |
 | Prompt, streaming line parser and generators        | `src/lib/poem-source.ts`             |
 | `/api/poem` handler                                 | `src/lib/poem-api.ts`                |
+| Human check: server / browser / gate                | `src/lib/turnstile.ts` · `src/lib/turnstile-client.ts` · `src/components/app/TurnstileGate.tsx` |
 | React island (app shell, camera, dialogs, settings) | `src/components/app/**`              |
 | Client hooks and printer driver                     | `src/lib/app/**`                     |
 | `/app` page shell that mounts the island            | `src/pages/app.astro`                |
@@ -209,9 +244,12 @@ serial options are recorded but not connected.
 
 The camera stream stays on the device. A single frame is sent to this site's own
 `/api/poem` endpoint — and on to the configured AI provider — only when you ask
-for a poem, and it is not stored. There are no accounts, cookies or analytics.
-`src/content/legal/privacy.md` explains this and must be updated before anything
-else that collects personal data is added.
+for a poem, and it is not stored. Opening `/app` also runs a Cloudflare Turnstile
+human check (IP address and standard request details) to protect that endpoint,
+and the resulting 30-minute token is kept in `sessionStorage`. There are no
+accounts, no cookies of our own and no analytics. `src/content/legal/privacy.md`
+explains this and must be updated before anything else that collects personal data
+is added.
 
 ## Icons and fonts
 
@@ -237,8 +275,9 @@ else that collects personal data is added.
 - `public/_headers` sets security headers (CSP, HSTS, `nosniff`, frame denial) and
   long-lived caching. Note `Permissions-Policy: camera=(self)` — the camera is
   needed, so `camera=()` would silently break it. The CSP allows `img-src data:`
-  for the captured frame and `connect-src 'self'` because the AI call happens
-  server-side.
+  for the captured frame, keeps the AI call server-side (`connect-src 'self'`),
+  and adds `https://challenges.cloudflare.com` to `script-src`/`connect-src`/
+  `frame-src` for the Turnstile widget.
 - `public/_redirects` is present and empty (no legacy URLs yet).
 
 ## Licence

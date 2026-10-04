@@ -9,6 +9,11 @@
  * which would clash with the DOM lib used by the Astro/React side of the repo.
  */
 import { handlePoemRequest, resolvePoemGenerator } from "../src/lib/poem-api";
+import {
+  handleSessionRequest,
+  requireTurnstileSession,
+  resolveTurnstileEnv,
+} from "../src/lib/turnstile";
 
 type Env = {
   ASSETS: { fetch(request: Request): Promise<Response> };
@@ -16,13 +21,22 @@ type Env = {
   AI_ENDPOINT?: string;
   AI_API_KEY?: string;
   AI_MODEL?: string;
+  TURNSTILE_SECRET?: string;
+  TURNSTILE_HOSTNAMES?: string;
 };
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(request.url);
+    const turnstile = resolveTurnstileEnv(env);
+
+    if (pathname === "/api/session") {
+      return handleSessionRequest(request, turnstile);
+    }
 
     if (pathname === "/api/poem") {
+      const denial = await requireTurnstileSession(request, turnstile);
+      if (denial) return denial;
       return handlePoemRequest(request, resolvePoemGenerator(env));
     }
 

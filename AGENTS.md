@@ -52,9 +52,14 @@ import `bun:test`; Bun runs and transpiles them natively (`bun test`).
   `resolvePoemGenerator` (binding first, HTTP endpoint second, `null` otherwise).
   Streams newline-delimited JSON (`title`, `line`, `done`). Used by both
   `worker/index.ts` and the dev plugin in `astro.config.mjs`.
+- `src/lib/turnstile.ts` — canonical Turnstile siteverify plus the signed,
+  HMAC-based 30-minute session token. `src/lib/turnstile-client.ts` is the browser
+  half (sessionStorage + widget loader); `src/lib/turnstile-shared.ts` holds the
+  action, header name and TTL shared by both. `worker/index.ts` guards `/api/poem`
+  with it and serves `/api/session`.
 - `src/lib/app/poem-client.ts` — the browser client for `/api/poem`; reads the
   stream, fires `onTitle` / `onLine` callbacks, and has typed `PoemApiError`
-  kinds (`network` / `server` / `format`).
+  kinds (`network` / `server` / `format` / `turnstile`).
 - `src/lib/app/use-camera.ts` — camera access without a third-party webcam
   component: permission, `enumerateDevices`, camera switching, canvas capture.
 - `src/lib/app/image.ts` — canvas JPEG normalisation (replaces the old server-side
@@ -156,9 +161,16 @@ it that way. `/app` also renders without the site header/footer
   and dialogs scroll internally. Keep marketing pages chrome-on.
 - **`Permissions-Policy` must be `camera=(self)`.** Copying B3's `camera=()` would
   silently break `getUserMedia` in production while still working in dev.
-- **CSP** allows `img-src 'self' data:` for the captured frame and
-  `connect-src 'self'` because the AI call happens in the Worker. If you ever call
-  a third party from the browser, extend `public/_headers`.
+- **CSP** allows `img-src 'self' data:` for the captured frame and keeps the AI
+  call server-side; it also adds `https://challenges.cloudflare.com` to
+  `script-src`/`connect-src`/`frame-src` for the Turnstile widget. If you ever
+  call another third party from the browser, extend `public/_headers`.
+- **`/api/poem` requires the `x-turnstile-session` header**; the Worker returns
+  `401 { code: "turnstile_required" }` without a valid one and `AppRoot` re-shows
+  `TurnstileGate` (then retries the pending frame via `usePoem().retry`). The
+  session is issued by `POST /api/session` after siteverify and lasts 30 minutes.
+  `resolveTurnstileEnv` fails closed when `TURNSTILE_SECRET` or
+  `TURNSTILE_HOSTNAMES` is missing.
 - **`run_worker_first: ["/api/*"]` needs Wrangler ≥ 4.20.0**, and
   `assets.binding: "ASSETS"` must be set for `env.ASSETS.fetch` to work.
 - `worker/index.ts` declares its `Env` type inline instead of using

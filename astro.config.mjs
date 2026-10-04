@@ -6,15 +6,16 @@ import tailwindcss from "@tailwindcss/vite";
 import { loadEnv } from "vite";
 
 /**
- * Serves `POST /api/poem` during `astro dev` using the exact handler the Worker
- * runs in production, so local development exercises the real AI path. Reads
- * config from `.env` (and the ambient environment). Dev only — `apply: "serve"`.
+ * Serves `POST /api/poem` and `/api/session` during `astro dev` using the exact
+ * handlers the Worker runs in production, so local development exercises the
+ * real AI and Turnstile paths. Reads config from `.env` (and the ambient
+ * environment). Dev only — `apply: "serve"`.
  *
  * @returns {import("vite").Plugin}
  */
-function devPoemApi() {
+function devApi() {
   return {
-    name: "dev-poem-api",
+    name: "dev-api",
     apply: "serve",
     configureServer(server) {
       const env = {
@@ -24,35 +25,71 @@ function devPoemApi() {
 
       server.middlewares.use(async (req, res, next) => {
         const path = (req.url ?? "").split("?")[0];
-        if (path !== "/api/poem") {
+        if (path !== "/api/poem" && path !== "/api/session") {
           next();
           return;
         }
 
         try {
-          const mod = /** @type {typeof import("./src/lib/poem-api")} */ (
+          const poem = /** @type {typeof import("./src/lib/poem-api")} */ (
             await server.ssrLoadModule("/src/lib/poem-api.ts")
           );
+          const turnstile = /** @type {typeof import("./src/lib/turnstile")} */ (
+            await server.ssrLoadModule("/src/lib/turnstile.ts")
+          );
+
+          // Forward only the headers the handlers use. The session token rides
+          // in `x-turnstile-session`.
+          /** @param {string} name */
+          const pick = (name) => {
+            const value = req.headers[name];
+            return Array.isArray(value) ? value[0] : value;
+          };
+          /** @type {Record<string, string>} */
+          const headers = {};
+          for (const name of ["content-type", "accept", "x-turnstile-session"]) {
+            const value = pick(name);
+            if (value) headers[name] = value;
+          }
 
           /** @type {Buffer[]} */
           const chunks = [];
-          for await (const chunk of req) {
-            chunks.push(Buffer.from(chunk));
+          if (req.method !== "GET" && req.method !== "HEAD") {
+            for await (const chunk of req) {
+              chunks.push(Buffer.from(chunk));
+            }
           }
           const body = Buffer.concat(chunks);
 
           const request = new Request(new URL(req.url ?? "/", "http://localhost"), {
             method: req.method,
-            headers: {
-              "content-type": req.headers["content-type"] ?? "application/json",
-            },
+            headers,
             body: req.method === "GET" || req.method === "HEAD" ? undefined : body,
           });
 
-          const response = await mod.handlePoemRequest(
+          const turnstileEnv = turnstile.resolveTurnstileEnv(env);
+
+          if (path === "/api/session") {
+            const response = await turnstile.handleSessionRequest(
+              request,
+              turnstileEnv,
+            );
+            res.statusCode = response.status;
+            response.headers.forEach((value, key) => res.setHeader(key, value));
+            res.end(await response.text());
+            return;
+          }
+
+          const denial = await turnstile.requireTurnstileSession(
             request,
-            mod.resolvePoemGenerator(env),
+            turnstileEnv,
           );
+          const response =
+            denial ??
+            (await poem.handlePoemRequest(
+              request,
+              poem.resolvePoemGenerator(env),
+            ));
 
           res.statusCode = response.status;
           response.headers.forEach((value, key) => res.setHeader(key, value));
@@ -73,11 +110,11 @@ function devPoemApi() {
           res.end();
         } catch (error) {
           server.config.logger.error(
-            `[dev-poem-api] ${error instanceof Error ? error.message : String(error)}`,
+            `[dev-api] ${error instanceof Error ? error.message : String(error)}`,
           );
           res.statusCode = 500;
           res.setHeader("content-type", "application/json");
-          res.end(JSON.stringify({ error: "The dev poem service failed." }));
+          res.end(JSON.stringify({ error: "The dev API failed." }));
         }
       });
     },
@@ -93,6 +130,6 @@ export default defineConfig({
   trailingSlash: "never",
   integrations: [sitemap(), react()],
   vite: {
-    plugins: [tailwindcss(), devPoemApi()],
+    plugins: [tailwindcss(), devApi()],
   },
 });
