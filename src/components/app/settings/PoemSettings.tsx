@@ -29,7 +29,7 @@ export default function PoemSettings() {
 
   return (
     <section className="settings-group">
-      <h3 className="settings-group__title">Poem</h3>
+      <h3 className="settings-group__title">Mode</h3>
 
       <SelectField
         id="poem-form"
