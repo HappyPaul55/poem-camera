@@ -73,7 +73,7 @@ export default function usePrinter() {
             .newline()
             .bold(false)
             .size(1, 1)
-            .text("By Paul Happy Hutchinson")
+            .text("By HappyPaul55")
             .newline()
             .align("left")
             .newline()
