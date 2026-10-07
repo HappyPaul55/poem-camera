@@ -389,13 +389,18 @@ export function createEndpointGenerator(
           }),
           signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
-      } catch {
+      } catch (error) {
+        console.warn("[poem] HTTP endpoint request failed:", error);
         throw new PoemSourceError("Could not reach the poem service.", 502);
       }
 
       if (!response.ok) {
+        const detail = await response.text();
+        console.warn(
+          `[poem] HTTP endpoint returned ${response.status}: ${detail.slice(0, 500)}`,
+        );
         throw new PoemSourceError(
-          `The poem service returned ${response.status}: ${await response.text()}.`,
+          `The poem service returned ${response.status}: ${detail}.`,
           502,
         );
       }
@@ -479,7 +484,8 @@ export function createWorkersAiGenerator(
           max_tokens: MAX_RESPONSE_TOKENS,
           stream: true,
         });
-      } catch {
+      } catch (error) {
+        console.warn("[poem] Workers AI binding call failed:", error);
         throw new PoemSourceError("Could not reach the poem service.", 502);
       }
 

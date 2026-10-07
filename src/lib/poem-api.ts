@@ -42,33 +42,47 @@ const MAX_IMAGE_CHARS = 12_000_000;
 const IMAGE_DATA_URL = /^data:image\/(jpeg|png|webp|gif);base64,[a-z0-9+/=\s]+$/i;
 
 /**
- * Choose a poem generator from a Worker `env` / process env bag. The Workers AI
- * binding (`AI`) wins when the Worker has one; otherwise an OpenAI-compatible
- * endpoint configured by `AI_ENDPOINT` / `AI_API_KEY` is used. `null` means the
- * poem service is not configured at all.
+ * Choose a poem generator from a Worker `env` / process env bag. An explicitly
+ * configured OpenAI-compatible endpoint (`AI_ENDPOINT` + `AI_API_KEY`) wins;
+ * otherwise the Workers AI binding (`AI`) is used; otherwise it throws a 503
+ * `PoemSourceError` so the caller can report the service as unconfigured.
  */
 export function resolvePoemGenerator(
   env: Record<string, unknown>,
-): PoemGenerator | null {
-  const ai = env.AI as WorkersAiBinding | undefined;
-  if (ai && typeof ai.run === "function") {
-    const model =
-      typeof env.AI_MODEL === "string" && env.AI_MODEL
-        ? env.AI_MODEL
-        : undefined;
-    return createWorkersAiGenerator(ai, model);
-  }
-
+): PoemGenerator {
   const endpoint = typeof env.AI_ENDPOINT === "string" ? env.AI_ENDPOINT : "";
   const apiKey = typeof env.AI_API_KEY === "string" ? env.AI_API_KEY : "";
   const model = typeof env.AI_MODEL === "string" ? env.AI_MODEL : undefined;
 
-  if (!endpoint || !apiKey) return null;
-  return createEndpointGenerator({ endpoint, apiKey, model });
+  // The HTTP endpoint takes precedence, so pointing production at another
+  // OpenAI-compatible provider (e.g. DeepSeek) only needs AI_ENDPOINT and
+  // AI_API_KEY — the Workers AI binding may stay configured.
+  if (endpoint && apiKey) {
+    return createEndpointGenerator({ endpoint, apiKey, model });
+  }
+
+  const ai = env.AI as WorkersAiBinding | undefined;
+  if (ai && typeof ai.run === "function") {
+    return createWorkersAiGenerator(ai, model);
+  }
+
+  throw new PoemSourceError("The poem service is not configured.", 503);
 }
 
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
+}
+
+/**
+ * Turn a thrown `PoemSourceError` (e.g. from `resolvePoemGenerator` when nothing
+ * is configured) into the JSON error response the API routes return.
+ */
+export function poemErrorResponse(error: unknown): Response {
+  if (error instanceof PoemSourceError) {
+    return json({ error: error.message }, error.status);
+  }
+  console.warn("[poem] unexpected error handling the request:", error);
+  return json({ error: "Something went wrong writing the poem." }, 502);
 }
 
 function isForm(value: unknown): value is PoemFormsNames {
@@ -101,6 +115,7 @@ async function poemStreamResponse(
     if (error instanceof PoemSourceError) {
       return json({ error: error.message }, error.status);
     }
+    console.warn("[poem] unexpected error before the stream started:", error);
     return json({ error: "Something went wrong writing the poem." }, 502);
   }
 
@@ -123,6 +138,9 @@ async function poemStreamResponse(
       try {
         for await (const event of events) send(event);
       } catch (error) {
+        if (!(error instanceof PoemSourceError)) {
+          console.warn("[poem] unexpected error mid-stream:", error);
+        }
         const streamError =
           error instanceof PoemSourceError
             ? error

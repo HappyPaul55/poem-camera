@@ -84,12 +84,20 @@ function devApi() {
             request,
             turnstileEnv,
           );
-          const response =
-            denial ??
-            (await poem.handlePoemRequest(
-              request,
-              poem.resolvePoemGenerator(env),
-            ));
+          /** @type {Response} */
+          let response;
+          if (denial) {
+            response = denial;
+          } else {
+            try {
+              response = await poem.handlePoemRequest(
+                request,
+                poem.resolvePoemGenerator(env),
+              );
+            } catch (error) {
+              response = poem.poemErrorResponse(error);
+            }
+          }
 
           res.statusCode = response.status;
           response.headers.forEach((value, key) => res.setHeader(key, value));

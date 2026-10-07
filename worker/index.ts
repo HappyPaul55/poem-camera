@@ -8,7 +8,11 @@
  * Types are declared inline rather than pulling in `@cloudflare/workers-types`,
  * which would clash with the DOM lib used by the Astro/React side of the repo.
  */
-import { handlePoemRequest, resolvePoemGenerator } from "../src/lib/poem-api";
+import {
+  handlePoemRequest,
+  poemErrorResponse,
+  resolvePoemGenerator,
+} from "../src/lib/poem-api";
 import {
   handleSessionRequest,
   requireTurnstileSession,
@@ -37,7 +41,11 @@ export default {
     if (pathname === "/api/poem") {
       const denial = await requireTurnstileSession(request, turnstile);
       if (denial) return denial;
-      return handlePoemRequest(request, resolvePoemGenerator(env));
+      try {
+        return handlePoemRequest(request, resolvePoemGenerator(env));
+      } catch (error) {
+        return poemErrorResponse(error);
+      }
     }
 
     return env.ASSETS.fetch(request);
