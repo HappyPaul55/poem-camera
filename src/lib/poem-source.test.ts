@@ -5,6 +5,7 @@ import {
   buildPrompt,
   createEndpointGenerator,
   createWorkersAiGenerator,
+  DEFAULT_WORKERS_AI_MODEL,
   parsePoem,
   streamPoem,
   type PoemGenerator,
@@ -389,24 +390,27 @@ describe("createWorkersAiGenerator", () => {
 });
 
 describe("resolvePoemGenerator", () => {
-  test("returns null without a binding, an endpoint or a key", () => {
-    expect(resolvePoemGenerator({})).toBeNull();
-    expect(resolvePoemGenerator({ AI_ENDPOINT: "x" })).toBeNull();
-    expect(resolvePoemGenerator({ AI_API_KEY: "x" })).toBeNull();
+  test("throws when nothing is configured", () => {
+    expect(() => resolvePoemGenerator({})).toThrow(PoemSourceError);
+    expect(() => resolvePoemGenerator({ AI_API_KEY: "x" })).toThrow(
+      PoemSourceError,
+    );
+    expect(() => resolvePoemGenerator({ AI_ENDPOINT: "x" })).toThrow(
+      PoemSourceError,
+    );
   });
 
   test("returns an HTTP generator from the env vars", () => {
     expect(
-      resolvePoemGenerator({ AI_ENDPOINT: "e", AI_API_KEY: "k", AI_MODEL: "m" }),
-    ).not.toBeNull();
+      resolvePoemGenerator({ AI_ENDPOINT: "e", AI_API_KEY: "k", AI_MODEL: "m" })
+        .model,
+    ).toBe("m");
   });
 
-  test("prefers the binding even when an endpoint is also configured", async () => {
-    let used = "";
+  test("prefers the endpoint over the binding when both are configured", () => {
     const ai: WorkersAiBinding = {
       async run() {
-        used = "binding";
-        return { response: "T\nb" };
+        throw new Error("the binding should not be used");
       },
     };
 
@@ -416,8 +420,21 @@ describe("resolvePoemGenerator", () => {
       AI_API_KEY: "k",
     });
 
-    await collect(generator!);
-    expect(used).toBe("binding");
+    // No AI_MODEL, so the endpoint's own default is used — proving the HTTP
+    // path won rather than the binding (whose default is a @cf/ model).
+    expect(generator.model).toBe("gpt-4o-mini");
+  });
+
+  test("falls back to the binding when no endpoint is configured", () => {
+    const ai: WorkersAiBinding = {
+      async run() {
+        return { response: "T\nb" };
+      },
+    };
+
+    expect(resolvePoemGenerator({ AI: ai }).model).toBe(
+      DEFAULT_WORKERS_AI_MODEL,
+    );
   });
 });
 
