@@ -102,10 +102,7 @@ export default function PoemDialog({
                 Writing your poem…
               </h2>
               <div className="grid place-items-center py-12">
-                <span
-                  className="spinner"
-                  style={{ width: 56, height: 56, borderWidth: 6 }}
-                />
+                <span className="spinner spinner-lg" />
               </div>
             </>
           )}

@@ -867,6 +867,11 @@
     animation: spin 0.9s linear infinite;
     flex: none;
   }
+  .spinner-lg {
+    width: 56px;
+    height: 56px;
+    border-width: 6px;
+  }
   @keyframes spin {
     to {
       transform: rotate(360deg);
