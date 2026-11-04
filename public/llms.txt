@@ -1,0 +1,20 @@
+# Poem Camera
+
+> Poem Camera is a camera that doesn't take photos - it takes poems. Point it at the world and an AI writes a short poem about what is in front of you, ready to print.
+
+## Pages
+
+- [Poem Camera](https://poem-camera.happypaul55.com/): what the camera does, its features and how it works.
+- [Open the camera](https://poem-camera.happypaul55.com/app): take a frame and have a poem written about it, then print it.
+- [Privacy](https://poem-camera.happypaul55.com/privacy): what the camera sends, what it does not store and how the human check works.
+
+## Project
+
+- [Source code](https://github.com/HappyPaul55/poem-camera) - released under the GNU Affero General Public License v3.0.
+- [HappyPaul55](https://www.happypaul55.com/) - the author's site.
+
+## Notes
+
+- The camera stream stays on the device; a single frame is sent to the site's own endpoint, and on to the AI provider, only when a poem is requested.
+- Poems can be printed to a Bluetooth thermal receipt printer or an ordinary printer.
+- No accounts, no cookies of its own and no analytics; opening the camera runs a Cloudflare Turnstile human check.
