@@ -14,7 +14,17 @@
   // workers.dev route and version preview URLs so neither is re-enabled on deploy.
   "workers_dev": false,
   "preview_urls": false,
-  // Workers AI binding — a fallback only. `resolvePoemGenerator` prefers an
+  // Workers Builds needs a previews block to deploy a non-production branch
+  // preview; mirror the production vars/binding so the preview still works.
+  "previews": {
+    "vars": {
+      "TURNSTILE_HOSTNAMES": "poem-camera.happypaul55.com"
+    },
+    "ai": {
+      "binding": "AI"
+    }
+  },
+  // Workers AI binding - a fallback only. `resolvePoemGenerator` prefers an
   // explicitly configured AI_ENDPOINT/AI_API_KEY (e.g. DeepSeek) and uses this
   // binding only when no endpoint is set.
   "ai": {

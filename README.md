@@ -274,10 +274,12 @@ is added.
   `noindex` and excluded from the sitemap.
 - `public/_headers` sets security headers (CSP, HSTS, `nosniff`, frame denial) and
   long-lived caching. Note `Permissions-Policy: camera=(self)` — the camera is
-  needed, so `camera=()` would silently break it. The CSP allows `img-src data:`
-  for the captured frame, keeps the AI call server-side (`connect-src 'self'`),
-  and adds `https://challenges.cloudflare.com` to `script-src`/`connect-src`/
-  `frame-src` for the Turnstile widget.
+  needed, so `camera=()` would silently break it. The CSP allows no
+  `'unsafe-inline'`: CSS is external, and the static build hashes Astro's island
+  runtime into `dist/_headers` with `src/integrations/csp-hashes.mjs`. It allows
+  `img-src data:` for the captured frame, keeps the AI call server-side
+  (`connect-src 'self'`), and adds `https://challenges.cloudflare.com` to
+  `script-src`/`connect-src`/`frame-src` for the Turnstile widget.
 - `public/_redirects` is present and empty (no legacy URLs yet).
 
 ## Licence
