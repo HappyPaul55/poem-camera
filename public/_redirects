@@ -5,3 +5,7 @@
 # camera is at /app. The service worker / PWA start URL was already /app.
 # Add one line per redirect, e.g.:
 # /old-path   /new-path   301
+
+# Legacy policy paths
+/cookies        /privacy   301
+/accessibility  /privacy   301
